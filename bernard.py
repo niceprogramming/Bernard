@@ -124,29 +124,29 @@ async def on_message(message):
 @client.event
 async def on_message_delete(message):
     if isMainServer(message.server.id):
-        timestamp = message.timestamp.strftime("%x - %X")
         if message.attachments:
-            fmt = '**Time:** ' + timestamp + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}` `{0.attachments[0][url]}`'
+            fmt = logTimeNow() + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}` `{0.attachments[0][url]}`'
         else:
-            fmt = '**Time:** ' + timestamp + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}`'
+            fmt = logTimeNow() + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}`'
         await client.send_message(auditChannel, fmt.format(message))
 
 @client.event
-async def on_member_ban(message):
+async def on_member_ban(message): #message = member
     if isMainServer(message.server.id):
-        fmt = '**Time:** **Banned user!** {0.mention}'
+        fmt = logTimeNow() + ' **Banned user!** {0.mention} ({0.name}#{0.discriminator})'
         await client.send_message(auditChannel, fmt.format(message))
 
 @client.event
-async def on_member_join(message):
+async def on_member_join(message): #message = member
     if isMainServer(message.server.id):
-        fmt = '**Time:** **New User!** {0.mention}\n'
+        create = message.created_at.strftime(config.get("bernard","timestamp"))
+        fmt = logTimeNow() + ' **New User!** {0.mention} ({0.name}#{0.discriminator}) : **Account Created:** ' + create
         await client.send_message(auditChannel, fmt.format(message))
 
 @client.event
-async def on_member_unban(server, message):
-    if isMainServer(message.server.id):
-        fmt = '**Time:** **Unbanned user!** {0.mention}'
+async def on_member_unban(server, message): #message = user
+    if isMainServer(server.id):
+        fmt = logTimeNow() + ' **Unbanned user!** {0.mention} ({0.name}#{0.discriminator})'
         await client.send_message(auditChannel, fmt.format(message))
 
 @client.event
@@ -154,11 +154,15 @@ async def on_ready():
     print('Logged in as ' + client.user.name + ' "' + client.user.id + '"') #say we're good
     await client.change_presence(game=discord.Game(name=config.get("bernard","gamestatus"))) #set our playing status
 
+def logTimeNow():
+    return datetime.datetime.utcnow().strftime(config.get("bernard","timestamp"))
+
 def isMainServer(id):
     if int(id) == int(config.get("discord","server")):
         return True
     else:
         return False
+
 
 async def roleAssign(client, validate, member, discordRole, dggUsername, tier, subExpire, cacheResult=[]):
     if validate is True:
@@ -294,7 +298,8 @@ async def purge_server():
     async with aiohttp.post(req, headers=head) as r:
         if r.status == 200:
             resp = await r.json()
-            await client.send_message(auditChannel, "**Pruning Server:** removed " + str(resp['pruned']) + " users not seen in " + config.get("purge","age") + " days")
+            if resp['pruned'] is not 0:
+                await client.send_message(auditChannel, logTimeNow() + "**Pruning Server:** removed " + str(resp['pruned']) + " users not seen in " + config.get("purge","age") + " days")
 
     #go back to bed based on the config
     print("Sleeping the purge_server() task...")
@@ -327,27 +332,19 @@ async def purge_invites():
                 inviteAgeInSeconds = (int(utcnow.timestamp()) - SubExpire)
                 InviteAgeInDays = (inviteAgeInSeconds / 86400)
 
-                #if the invite is younger than minage days, lets ignore it
-                if InviteAgeInDays < int(config.get("invites","minage")):
-                    continue
+                #if it made it minage days
+                if InviteAgeInDays > int(config.get("invites","minage")):
 
-                #if it made it minage days, but has been used minuse times, lets ignore it
-                if InviteAgeInDays > int(config.get("invites","minage")) and int(invite['uses']) >= int(config.get("invites","minuse")):
-                    continue
+                    #if the key has 0 to minuse uses, lets just get rid of it
+                    if 0 <= int(invite['uses']) <= int(config.get("invites","minuse")):
+                        print("KILLING INVITE: " + invite['code'] + " USED: " + str(invite['uses']) + " CREATED: " + invite['created_at'])
+                        await client.send_message(auditChannel, logTimeNow() + " **Pruned Invite:** " + invite['code'] + " **From:** <@" + invite['inviter']['id'] + "> **Uses:** " + str(invite['uses']) + " **Age:** " + str(round(InviteAgeInDays, 1)) + " days old")
 
-                #if it has made it maxage days, and has been used over maxuse times, lets ignore it
-                if InviteAgeInDays > int(config.get("invites","maxage")) and int(invite['uses']) >= int(config.get("invites","maxuse")):
-                    continue
+                        #sends the kill to discord
+                        async with aiohttp.delete(config.get("discord","endpoint") + "/invites/" + invite['code'], headers=head) as r:
+                            delresp = await r.json()
 
-                #if we made it this far, the key is sunzo :( lets kill it rip
-                print("KILLING INVITE: " + invite['code'] + " USED: " + str(invite['uses']) + " CREATED: " + invite['created_at'])
-                await client.send_message(auditChannel, "**Pruned Invite:** " + invite['code'] + " **From:** <@" + invite['inviter']['id'] + "> **Uses:** " + str(invite['uses']) + " **Age:** " + str(round(InviteAgeInDays, 1)) + " days old")
-
-                #send the kill switch :(
-                async with aiohttp.delete(config.get("discord","endpoint") + "/invites/" + invite['code'], headers=head) as r:
-                    delresp = await r.json()
-
-                await asyncio.sleep(5)
+                await asyncio.sleep(3)
 
     #go back to bed based on the config
     print("Sleeping the purge_invites() task...")
