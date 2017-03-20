@@ -9,6 +9,26 @@ import time
 import re
 import aiohttp
 
+"""
+Bernard, For Discord.
+
+A mess written by ILiedAboutCake - 2017
+
+TODO:
+
+- Filetype upload restriction (do not allow EXEs and such)
+- Split background tasks into their own files
+- Better error handling for sub_connector()
+- Built in health checks for background tasks (supervisor/watchdog process)
+- Audit subs db vs discord roles
+- Background task for pruning "Deleted User" users in banlist
+- Text room that only shows up when you are in the Destiny channel
+- Command for sub connector to force an update that users can call
+- Purge DB info on ban/kick from server for subscribers
+- !bernard command that lets users know what this bot does
+
+"""
+
 #load the configuration
 config = configparser.ConfigParser()
 config.read('bernard.cfg')
@@ -23,6 +43,7 @@ client = discord.Client()
 #load in some variables from the cfg
 subFlairs = [e.strip() for e in config.get("flair", "flairs").split(',')]
 whitelistUsers = [e.strip() for e in config.get("roles", "Administrator").split(',')]
+bannedUploads = [e.strip() for e in config.get("upload-extension-restrict", "filetypes").split(',')]
 auditChannel = discord.Object(id=config.get("bernard","channel"))
 
 pepoThinkers = ['121406689613185025', '221480025025675265', '252869311545212928', '142313171028410368','170367579263729664'] #micspam, mouton, cake, rtba, chenners
@@ -37,16 +58,6 @@ async def on_message(message):
     if int(message.server.id) != int(config.get("discord","server")):
         return
 
-    #ignore normies, only listen to admin group defined in config or whitelist
-    allowExec = False
-    for role in message.author.roles:
-        if int(role.id) == int(config.get("roles", "Administrator")):
-            allowExec = True
-
-    #sometimes we want normie users to have access too
-    if message.author.id in whitelistUsers:
-        allowExec = True
-
     #put the chat message we got in the console 
     print("channel:" + str(message.channel) + " user:" + str(message.author) + " msg: " + message.content)
 
@@ -59,6 +70,27 @@ async def on_message(message):
     if message.author.id == '83041706965995520':
         if random.randrange(1,10) == 5:
             await client.add_reaction(message, 'FerretLOL:271856531857735680')
+
+    #restrict users from uploading certain filetypes
+    if message.attachments:
+        if int(config.get("upload-extension-restrict","enable")):
+            #ignore the basename but break the message into parts based on .
+            exploded = message.attachments[0]['filename'].split(".")[1:]
+            for ext in exploded:
+                ext = ext.replace(".","").replace("-","")
+                if ext in bannedUploads:
+                    await client.delete_message(message)
+                    await client.send_message(message.channel, message.author.mention + ' That file is prohibited here. ' + message.attachments[0]['filename'])
+
+    #---ignore normies, only listen to admin group defined in config or whitelist---
+    allowExec = False
+    for role in message.author.roles:
+        if int(role.id) == int(config.get("roles", "Administrator")):
+            allowExec = True
+
+    #sometimes we want normie users to have access too
+    if message.author.id in whitelistUsers:
+        allowExec = True
 
     #THE MEMES STOP HERE, REAL DANGEROUS COMMANDS BELOW
     if allowExec == False:
@@ -162,7 +194,6 @@ def isMainServer(id):
         return True
     else:
         return False
-
 
 async def roleAssign(client, validate, member, discordRole, dggUsername, tier, subExpire, cacheResult=[]):
     if validate is True:
@@ -299,12 +330,13 @@ async def purge_server():
         if r.status == 200:
             resp = await r.json()
             if resp['pruned'] is not 0:
-                await client.send_message(auditChannel, logTimeNow() + "**Pruning Server:** removed " + str(resp['pruned']) + " users not seen in " + config.get("purge","age") + " days")
+                await client.send_message(auditChannel, logTimeNow() + " **Pruning Server:** removed " + str(resp['pruned']) + " users not seen in " + config.get("purge","age") + " days")
 
     #go back to bed based on the config
     print("Sleeping the purge_server() task...")
     await asyncio.sleep(int(config.get("purge","interval")))
 
+#cleans up the server invites that users create perma but become underused (bernard.cfg -> invites)
 async def purge_invites():
     print("Waking up the purge_invites() task...")
     #await the client to start
