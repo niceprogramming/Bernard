@@ -21,7 +21,6 @@ TODO:
 - Built in health checks for background tasks (supervisor/watchdog process)
 - Audit subs db vs discord roles
 - Background task for pruning "Deleted User" users in banlist
-- Text room that only shows up when you are in the Destiny channel
 - Command for sub connector to force an update that users can call
 - Purge DB info on ban/kick from server for subscribers
 - !bernard command that lets users know what this bot does
@@ -43,7 +42,11 @@ client = discord.Client()
 subFlairs = [e.strip() for e in config.get("flair", "flairs").split(',')]
 whitelistUsers = [e.strip() for e in config.get("roles", "Administrator").split(',')]
 bannedUploads = [e.strip() for e in config.get("upload-extension-restrict", "filetypes").split(',')]
+
+#setup discord objects we will be calling a lot
 auditChannel = discord.Object(id=config.get("bernard","channel"))
+destinyTextChannel = discord.Object(id=config.get("destiny-private-text","text"))
+destinyTextRole = discord.Role(id=config.get("destiny-private-text","role"), server=config.get("discord","server"))
 
 pepoThinkers = ['121406689613185025', '221480025025675265', '252869311545212928', '142313171028410368','170367579263729664'] #micspam, mouton, cake, rtba, chenners
 
@@ -179,20 +182,36 @@ async def on_member_unban(server, message): #message = user
     if isMainServer(server.id):
         fmt = logTimeNow() + ' **Unbanned user!** {0.mention} ({0.name}#{0.discriminator})'
         await client.send_message(auditChannel, fmt.format(message))
-
+        
 @client.event
-async def on_voice_state_update(before, after): #before, after = Member
+async def on_voice_state_update(before, after): #before, after = Member object
     if int(config.get("destiny-private-text","enable")):
-        role = discord.Role(id=config.get("destiny-private-text","role"), server=config.get("discord","server"))
-        text = discord.Object(id=config.get("destiny-private-text","text"))
-        #ingress to the channel
-        if after.voice.voice_channel.id == config.get("destiny-private-text","voice"):
-            await client.add_roles(after, role)
-            await client.send_message(text, after.mention + " Welcome to Destiny's private room. You can use this chat for exchanging messages directly. Or not that's okay too.")
+        #we can safely ignore users who are administrators on the server
+        for role in before.roles:
+            if int(role.id) == int(config.get("roles", "Administrator")):
+                return
 
-        #egress out of the channel
+        #handle ingress joins from nothing (connect to channel)
+        if before.voice.voice_channel == None and after.voice.voice_channel.id == config.get("destiny-private-text","voice"):
+            await client.send_message(destinyTextChannel, after.mention + " Welcome to Destiny's private room. You can use this chat for exchanging messages directly. Or not that's okay too.")
+            await client.add_roles(after, destinyTextRole)
+            return
+
+        #handle egress leaves to nothing (disconnect from channel)
+        if after.voice.voice_channel == None and before.voice.voice_channel.id == config.get("destiny-private-text","voice"):
+            await client.remove_roles(before, destinyTextRole)
+            return
+
+        #handle people hopping from one channel into the private channel
+        if after.voice.voice_channel.id == config.get("destiny-private-text","voice"):
+            await client.send_message(destinyTextChannel, after.mention + " Welcome to Destiny's private room. You can use this chat for exchanging messages directly. Or not that's okay too.")
+            await client.add_roles(after, destinyTextRole)
+            return
+
+        #handle people hopping from the destiny channel to somewhere else
         if before.voice.voice_channel.id == config.get("destiny-private-text","voice"):
-            await client.remove_roles(before, role)
+            await client.remove_roles(before, destinyTextRole)
+            return
 
 @client.event
 async def on_ready():
@@ -228,8 +247,6 @@ async def roleAssign(client, validate, member, discordRole, dggUsername, tier, s
         db.execute("INSERT INTO subs ('discordName', 'discordDiscriminator', 'discordID', 'dggname', 'tier', 'lastcheck', 'expire') VALUES (?,?,?,?,?,?,?)", (member.name, member.discriminator, member.id, dggUsername, tier, int(time.time()), subExpire))
         await client.add_roles(member, discordRole)
         await client.send_message(auditChannel, "**New subscription connected:** " + member.mention + ", **Tier:** " + tier + ", **DGG Nick:** " + dggUsername)
-
-
 
 async def sub_connector():
     #set the roles
@@ -395,6 +412,7 @@ async def purge_invites():
     print("Sleeping the purge_invites() task...")
     await asyncio.sleep(int(config.get("invites","interval")))
 
+#watchdog
 async def supervisor():
     pass
 
@@ -409,5 +427,9 @@ if int(config.get("purge","enable")):
 #start the inactive invite purge
 if int(config.get("invites","enable")):
     client.loop.create_task(purge_invites())
+
+#start the supervisor
+if int(config.get("supervisor","enable")):
+    client.loop.create_task(supervisor())
 
 client.run(config.get("discord","token")) #start the BOT
