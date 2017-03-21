@@ -16,7 +16,6 @@ A mess written by ILiedAboutCake - 2017
 
 TODO:
 
-- Filetype upload restriction (do not allow EXEs and such)
 - Split background tasks into their own files
 - Better error handling for sub_connector()
 - Built in health checks for background tasks (supervisor/watchdog process)
@@ -157,7 +156,7 @@ async def on_message(message):
 async def on_message_delete(message):
     if isMainServer(message.server.id):
         if message.attachments:
-            fmt = logTimeNow() + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}` `{0.attachments[0][url]}`'
+            fmt = logTimeNow() + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}` <{0.attachments[0][url]}>'
         else:
             fmt = logTimeNow() + ' **Caught Deleted Message!** {0.author.mention} ({0.author}) **Channel:** {0.channel.mention}\n**Message:** `{0.content}`'
         await client.send_message(auditChannel, fmt.format(message))
@@ -180,6 +179,20 @@ async def on_member_unban(server, message): #message = user
     if isMainServer(server.id):
         fmt = logTimeNow() + ' **Unbanned user!** {0.mention} ({0.name}#{0.discriminator})'
         await client.send_message(auditChannel, fmt.format(message))
+
+@client.event
+async def on_voice_state_update(before, after): #before, after = Member
+    if int(config.get("destiny-private-text","enable")):
+        role = discord.Role(id=config.get("destiny-private-text","role"), server=config.get("discord","server"))
+        text = discord.Object(id=config.get("destiny-private-text","text"))
+        #ingress to the channel
+        if after.voice.voice_channel.id == config.get("destiny-private-text","voice"):
+            await client.add_roles(after, role)
+            await client.send_message(text, after.mention + " Welcome to Destiny's private room. You can use this chat for exchanging messages directly. Or not that's okay too.")
+
+        #egress out of the channel
+        if before.voice.voice_channel.id == config.get("destiny-private-text","voice"):
+            await client.remove_roles(before, role)
 
 @client.event
 async def on_ready():
@@ -381,6 +394,9 @@ async def purge_invites():
     #go back to bed based on the config
     print("Sleeping the purge_invites() task...")
     await asyncio.sleep(int(config.get("invites","interval")))
+
+async def supervisor():
+    pass
 
 #start the sub connector
 if int(config.get("subs","enable")):
