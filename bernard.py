@@ -202,6 +202,10 @@ async def on_voice_state_update(before, after): #before, after = Member object
             await client.remove_roles(before, destinyTextRole)
             return
 
+        #handle people who are joining or leaving, but not to the channel we want
+        if before.voice.voice_channel == None or after.voice.voice_channel == None:
+            return
+
         #handle people hopping from one channel into the private channel
         if after.voice.voice_channel.id == config.get("destiny-private-text","voice"):
             await client.send_message(destinyTextChannel, after.mention + " Welcome to Destiny's private room. You can use this chat for exchanging messages directly. Or not that's okay too.")
