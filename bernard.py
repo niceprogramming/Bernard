@@ -100,57 +100,34 @@ async def on_message(message):
 
     #split up the command once for easy usage below
     messageArray = message.content.split()
+    if len(messageArray) == 0: return
 
     #good sanity check if the bot is responding
     if messageArray[0].startswith('!pepo'):
         await client.send_message(message.channel, '<:PepoThink:278704638339842048>')
 
     if messageArray[0].startswith('!check'):
-        #turns the user mention into something we can call dgg with
+        #turns the user mention into something we can call dgg with user mention -> id -> discord.member object
         member = await client.get_user_info(re.sub("\D", "", messageArray[1]))
 
-        #build the dgg query
         dggLookupStr = config.get("dgg","endpoint") + "?privatekey="  + config.get("dgg","privatekey") + "&discordname=" + member.name + "%23" + member.discriminator
-
-        #open a call to dgg
         async with aiohttp.get(dggLookupStr) as r:
-
             #if we find a valid user
             if r.status == 200:
                 dggProfile = await r.json()
+                sub, exp = dggSubFindRole(config, dggProfile)
 
-                #if the user sub is valid
-                if (dggProfile['subscription']):
+                #if sub with an expire date
+                if sub is not None and exp is not None:
+                    await client.send_message(message.channel, messageArray[1] + " is a Tier " + sub + ". Expires: " + exp)
 
-                    #handle T1+Twitch subs, which gives you psuedo T2
-                    if config.get("flair","twitch") in dggProfile['features'] and config.get("flair","t1") in dggProfile['features']:
-                        await client.send_message(message.channel, messageArray[1] + ": Psuedo T2 (T1+Twitch) - Expires " + dggProfile['subscription']['end'])
+                #if a special use case w/ no expire date (VIP/Broadcaster)
+                if sub is not None and exp is None:
+                    await client.send_message(message.channel, messageArray[1] + ": Has a nonexpiring role: " + sub)
 
-                    #handle normal T1-T4 subs
-                    elif [i for i in subFlairs if i in dggProfile['features']]:
-
-                        #T4 Logic
-                        if config.get("flair","t4") in dggProfile['features']:
-                            await client.send_message(message.channel, messageArray[1] + ": Found Tier 4 - Expires " + dggProfile['subscription']['end'])
-                        #T3 Logic
-                        elif config.get("flair","t3") in dggProfile['features']:
-                            await client.send_message(message.channel, messageArray[1] + ": Found Tier 3 - Expires " + dggProfile['subscription']['end'])
-                        #T2 Logic
-                        elif config.get("flair","t2") in dggProfile['features']:
-                            await client.send_message(message.channel, messageArray[1] + ": Found Tier 2 - Expires " + dggProfile['subscription']['end'])
-                        #T1 Logic
-                        elif config.get("flair","t1") in dggProfile['features']:
-                            await client.send_message(message.channel, messageArray[1] + ": Found Tier 1 - Expires " + dggProfile['subscription']['end'])
-                        else:
-                            await client.send_message(message.channel, messageArray[1] + " IDK what the fuck you're trying to do, something went wrong. Bother Cake.")
-
-                #handle if they are only a twitch sub
-                elif config.get("flair","twitch") in dggProfile['features']: 
-                    await client.send_message(message.channel, messageArray[1] + ": Found Twitch sub connected to Destiny.gg.")
-
-                else:
+                #plebs
+                if sub is None and exp is None:
                     await client.send_message(message.channel, messageArray[1] + " Does not have an active subscription <:DaFeels:271856531572523010>")
-
             else:
                 #not connected
                 await client.send_message(message.channel, messageArray[1] + " Does not have their Discord configured on destiny.gg https://destiny.gg/profile <:DaFeels:271856531572523010>")
@@ -222,14 +199,36 @@ async def on_ready():
     print('Logged in as ' + client.user.name + ' "' + client.user.id + '"') #say we're good
     await client.change_presence(game=discord.Game(name=config.get("bernard","gamestatus"))) #set our playing status
 
+#UTC logging for audit channel
 def logTimeNow():
     return datetime.datetime.utcnow().strftime(config.get("bernard","timestamp"))
 
+#if we are in the main (dgg) server
 def isMainServer(id):
     if int(id) == int(config.get("discord","server")):
         return True
     else:
         return False
+
+#convert what dgg sends us to unix epoch, should make this UTC TODO
+def dggSubTimeToEpoch(config, timestamp):
+    return int(time.mktime(time.strptime(timestamp, config.get("dgg","timestamp"))))
+
+#convert sub roles into something usable, return a tuple of sub, expire
+def dggSubFindRole(config, profile):
+    #we want to check for these based on the importance of the, since VIP/Notable gives you more power FOR FREE we check them first
+    features = profile['features']
+    if config.get("flair","vip") in features: return "VIP", None
+    if config.get("flair","broadcaster") in features: return "Notable", None
+
+    #plebguard
+    if profile['subscription'] is None and config.get("flair","twitch") not in profile['features']: return None, None
+    if config.get("flair","twitch") in features and config.get("flair","t1") in features: return "T2", profile['subscription']['end']
+    if config.get("flair","t4") in features: return "T4", profile['subscription']['end']
+    if config.get("flair","t3") in features: return "T3", profile['subscription']['end']
+    if config.get("flair","t2") in features: return "T2", profile['subscription']['end']
+    if config.get("flair","t1") in features: return "T1", profile['subscription']['end']
+    if config.get("flair","twitch") in features: return "Twitch", None
 
 async def roleAssign(client, validate, member, discordRole, dggUsername, tier, subExpire, cacheResult=[]):
     if validate is True:
