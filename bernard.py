@@ -84,6 +84,46 @@ async def on_message(message):
                     await client.delete_message(message)
                     await client.send_message(message.channel, message.author.mention + ' That file is prohibited here. ' + message.attachments[0]['filename'])
 
+    #split up the command once for easy usage below
+    messageArray = message.content.split()
+    if len(messageArray) == 0: return
+
+    #check sub status
+    if messageArray[0].startswith('!check'):
+        if isDiscordAdmin(config, message.author.roles):
+            if len(messageArray) == 1:
+                member = message.author #set yourself as the member
+                messageArray.insert(1, message.author.mention) #makes things work below as the 2nd item in the list = who to reply to in msg
+            elif len(messageArray) == 2:
+                member = await client.get_user_info(re.sub("\D", "", messageArray[1])) #vaindil says there is a better way to do this, revisit
+            else:
+                await client.send_message(message.channel, message.author.mention + " what are you trying to do? <:BASEDWATM8:271856531287441410>")
+                return
+        else:
+            member = message.author
+            messageArray.insert(1, message.author.mention)
+
+        dggLookupStr = config.get("dgg","endpoint") + "?privatekey="  + config.get("dgg","privatekey") + "&discordname=" + member.name + "%23" + member.discriminator
+        async with aiohttp.get(dggLookupStr) as r:
+            #if we find a valid user
+            if r.status == 200:
+                dggProfile = await r.json()
+                sub, exp = dggSubFindRole(config, dggProfile)
+
+                #if sub with an expire date
+                if sub is not None and exp is not None:
+                    await client.send_message(message.channel, messageArray[1] + " is a Tier " + sub + ". Expires: " + exp)
+
+                #if a special use case w/ no expire date (VIP/Broadcaster/Twitch)
+                if sub is not None and exp is None:
+                    await client.send_message(message.channel, messageArray[1] + ": Has a nonexpiring role: " + sub)
+
+                #plebs
+                if sub is None and exp is None:
+                    await client.send_message(message.channel, messageArray[1] + " Does not have an active subscription <:DaFeels:271856531572523010>")
+            else:
+                await client.send_message(message.channel, messageArray[1] + ", That doesn't look like anything to me. (Discord not configured on https://destiny.gg/profile)")
+
     #---ignore normies, only listen to admin group defined in config or whitelist---
     allowExec = False
     for role in message.author.roles:
@@ -97,40 +137,6 @@ async def on_message(message):
     #THE MEMES STOP HERE, REAL DANGEROUS COMMANDS BELOW
     if allowExec == False:
         return
-
-    #split up the command once for easy usage below
-    messageArray = message.content.split()
-    if len(messageArray) == 0: return
-
-    #good sanity check if the bot is responding
-    if messageArray[0].startswith('!pepo'):
-        await client.send_message(message.channel, '<:PepoThink:278704638339842048>')
-
-    if messageArray[0].startswith('!check'):
-        #turns the user mention into something we can call dgg with user mention -> id -> discord.member object
-        member = await client.get_user_info(re.sub("\D", "", messageArray[1]))
-
-        dggLookupStr = config.get("dgg","endpoint") + "?privatekey="  + config.get("dgg","privatekey") + "&discordname=" + member.name + "%23" + member.discriminator
-        async with aiohttp.get(dggLookupStr) as r:
-            #if we find a valid user
-            if r.status == 200:
-                dggProfile = await r.json()
-                sub, exp = dggSubFindRole(config, dggProfile)
-
-                #if sub with an expire date
-                if sub is not None and exp is not None:
-                    await client.send_message(message.channel, messageArray[1] + " is a Tier " + sub + ". Expires: " + exp)
-
-                #if a special use case w/ no expire date (VIP/Broadcaster)
-                if sub is not None and exp is None:
-                    await client.send_message(message.channel, messageArray[1] + ": Has a nonexpiring role: " + sub)
-
-                #plebs
-                if sub is None and exp is None:
-                    await client.send_message(message.channel, messageArray[1] + " Does not have an active subscription <:DaFeels:271856531572523010>")
-            else:
-                #not connected
-                await client.send_message(message.channel, messageArray[1] + " Does not have their Discord configured on destiny.gg https://destiny.gg/profile <:DaFeels:271856531572523010>")
 
 @client.event
 async def on_message_delete(message):
@@ -199,16 +205,17 @@ async def on_ready():
     print('Logged in as ' + client.user.name + ' "' + client.user.id + '"') #say we're good
     await client.change_presence(game=discord.Game(name=config.get("bernard","gamestatus"))) #set our playing status
 
+def isDiscordAdmin(config, roles): #send this message.author.roles
+    for role in roles:
+        if role.id == config.get("roles", "Administrator"): return True 
+
 #UTC logging for audit channel
 def logTimeNow():
     return datetime.datetime.utcnow().strftime(config.get("bernard","timestamp"))
 
 #if we are in the main (dgg) server
 def isMainServer(id):
-    if int(id) == int(config.get("discord","server")):
-        return True
-    else:
-        return False
+    if int(id) == int(config.get("discord","server")): return True 
 
 #convert what dgg sends us to unix epoch, should make this UTC TODO
 def dggSubTimeToEpoch(config, timestamp):
@@ -220,7 +227,6 @@ def dggSubFindRole(config, profile):
     features = profile['features']
     if config.get("flair","vip") in features: return "VIP", None
     if config.get("flair","broadcaster") in features: return "Notable", None
-
     #plebguard
     if profile['subscription'] is None and config.get("flair","twitch") not in profile['features']: return None, None
     if config.get("flair","twitch") in features and config.get("flair","t1") in features: return "T2", profile['subscription']['end']
