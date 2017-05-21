@@ -71,7 +71,7 @@ async def on_message(message):
         #if users spam over x links, kick from server
         if len(matchedURLs) > int(config.get("restrict-urls","allowed")):
             await client.delete_message(message)
-            await client.send_message(message.channel, '🚫 ' + message.author.mention + ' Stop spamming.')
+            await client.send_message(message.channel, '🚫 ' + message.author.mention + ' Stop.')
             await client.kick(message.author)
 
         #check blacklist
