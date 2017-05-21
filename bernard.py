@@ -66,13 +66,18 @@ async def on_message(message):
 
     #URL filter
     if(int(config.get("restrict-urls","enable"))):
-        #regex to find all links then if any in the message inspect the message
-        matchedURLs = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', message.content )
+        matchedURLs = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', message.content)
+
+        #if users spam over x links, kick from server
+        if len(matchedURLs) > int(config.get("restrict-urls","allowed")):
+            await client.delete_message(message)
+            await client.send_message(message.channel, '🚫 ' + message.author.mention + ' Stop spamming.')
+            await client.kick(message.author)
+
+        #check blacklist
         if matchedURLs is not None:
             for url in matchedURLs:
                 parsedURL = urlparse(url)
-
-                #search the DB for flagged sites
                 db.execute('SELECT domain, policy FROM restricted_domains WHERE domain=?', (parsedURL.netloc,))
                 dbResult = db.fetchone()
 
