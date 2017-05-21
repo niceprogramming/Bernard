@@ -8,6 +8,7 @@ import datetime
 import time
 import re
 import aiohttp
+from urllib.parse import urlparse
 
 """
 Bernard, For Discord.
@@ -48,7 +49,7 @@ auditChannel = discord.Object(id=config.get("bernard","channel"))
 destinyTextChannel = discord.Object(id=config.get("destiny-private-text","text"))
 destinyTextRole = discord.Role(id=config.get("destiny-private-text","role"), server=config.get("discord","server"))
 
-pepoThinkers = ['121406689613185025', '221480025025675265', '252869311545212928', '142313171028410368','170367579263729664'] #micspam, mouton, cake, rtba, chenners
+pepoThinkers = ['221480025025675265', '252869311545212928', '142313171028410368','170367579263729664'] #mouton, cake, rtba, chenners
 
 @client.event
 async def on_message(message):
@@ -63,15 +64,32 @@ async def on_message(message):
     #put the chat message we got in the console 
     print("channel:" + str(message.channel) + " user:" + str(message.author) + " msg: " + message.content)
 
-    #give some memers a pepo, sometimes
-    if message.author.id in pepoThinkers:
-        if random.randrange(1,10) == 3:
-            await client.add_reaction(message, 'PepoThink:278704638339842048')
+    #URL filter
+    if(int(config.get("restrict-urls","enable"))):
+        #regex to find all links then if any in the message inspect the message
+        matchedURLs = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', message.content )
+        if matchedURLs is not None:
+            for url in matchedURLs:
+                parsedURL = urlparse(url)
 
-    #give polecat a ferret sometimes
-    if message.author.id == '83041706965995520':
-        if random.randrange(1,10) == 5:
-            await client.add_reaction(message, 'FerretLOL:271856531857735680')
+                #search the DB for flagged sites
+                db.execute('SELECT domain, policy FROM restricted_domains WHERE domain=?', (parsedURL.netloc,))
+                dbResult = db.fetchone()
+
+                #we find a valid site to flag
+                if dbResult is not None:
+                    # 0 = delete and notify, 1 = kick, 2 = auto ban
+                    if dbResult[1] is 0:
+                        await client.delete_message(message)
+                        await client.send_message(message.channel, '⚠️ ' + message.author.mention + ' That URL is prohibited here.')
+                    elif dbResult[1] is 1:
+                        await client.delete_message(message)
+                        await client.kick(message.author)
+                        await client.send_message(message.channel, '⚠️ ' + message.author.mention + ' That URL is prohibited here. Kicking User...')
+                    elif dbResult[1] is 2:
+                        await client.delete_message(message)
+                        await client.ban(message.author, delete_message_days = 0)
+                        await client.send_message(message.channel, '⚠️ ' + message.author.mention + ' That URL is blacklisted with ban instructions. Banning User...')
 
     #restrict users from uploading certain filetypes
     if message.attachments:
@@ -82,7 +100,19 @@ async def on_message(message):
                 ext = ext.replace(".","").replace("-","")
                 if ext in bannedUploads:
                     await client.delete_message(message)
-                    await client.send_message(message.channel, message.author.mention + ' That file is prohibited here. ' + message.attachments[0]['filename'])
+                    await client.send_message(message.channel, '⚠️ ' + message.author.mention + ' That file is prohibited here. ' + message.attachments[0]['filename'])
+
+    #only runs if fun mode is enabled
+    if(int(config.get("funmode","enable"))):
+        #give some memers a pepo, sometimes
+        if message.author.id in pepoThinkers:
+            if random.randrange(1,int(config.get("funmode","chance"))) == 3:
+                await client.add_reaction(message, 'PepoThink:278704638339842048')
+
+        #give polecat a ferret sometimes
+        if message.author.id == '83041706965995520':
+            if random.randrange(1,int(config.get("funmode","chance"))) == 5:
+                await client.add_reaction(message, 'FerretLOL:271856531857735680')
 
     #split up the command once for easy usage below
     messageArray = message.content.split()
@@ -129,6 +159,26 @@ async def on_message(message):
     for role in message.author.roles:
         if int(role.id) == int(config.get("roles", "Administrator")):
             allowExec = True
+
+    #black(ed) URL list control
+    if messageArray[0].startswith('!blacklist'):
+        if messageArray[1] == "check":
+            db.execute('SELECT domain, policy FROM restricted_domains WHERE domain=?', (messageArray[2],))
+            dbResult = db.fetchone()
+            if dbResult is None:
+                await client.send_message(message.channel, messageArray[2] + " was not found")
+            else:
+                await client.send_message(message.channel, messageArray[2] + " Found with policy: " + str(dbResult[1]))
+        elif messageArray[1] == "add":
+            db.execute("INSERT INTO restricted_domains ('domain', 'policy') VALUES (?,?)", (messageArray[2], messageArray[3]))
+            await client.send_message(message.channel, "added " + messageArray[2] + " to blacklist with policy " + messageArray[3])
+        elif messageArray[1] == "delete":
+            db.execute('DELETE FROM restricted_domains WHERE domain = ? ', (messageArray[2],))
+            await client.send_message(message.channel, "deleted " + messageArray[2])
+        else:
+            await client.send_message(message.channel, "``` usage: !blacklist <function> <url> <policy> \n <function> = check/add/delete \n <url> = root URL without protocol or path \n <policy> = 0 delete, 1 auto-kick, 2 auto-ban \n example: !blackist add blacked.com 0```")
+
+        dbConnection.commit()
 
     #sometimes we want normie users to have access too
     if message.author.id in whitelistUsers:
