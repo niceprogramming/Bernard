@@ -13,3 +13,6 @@ import bernard.message
 
 #start the discord connection
 bernard.discord.bot.run(bernard.config.cfg['discord']['token'])
+
+#set a variable for when the bot starts
+bernard.common.bernardStartTimeSet()

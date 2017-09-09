@@ -6,9 +6,11 @@ from . import discord
 from . import database
 
 import json
+import time
 
 @discord.bot.event
 async def on_message(message):
+	msgProcessStart = time.time()
 	#only reply to the guild set in config file
 	if message.server.id != config.cfg['discord']['server']:
 		return
@@ -29,6 +31,7 @@ async def on_message(message):
 		"score":0
 	}
 
+	#send it off
 	database.rds.set(message.channel.id +":"+ message.id, json.dumps(msgToQueue))
 
 
@@ -42,3 +45,7 @@ async def on_message(message):
 
 	#http://discordpy.readthedocs.io/en/latest/faq.html#why-does-on-message-make-my-commands-stop-working
 	await discord.bot.process_commands(message)
+	msgProcessEnd = time.time()
+
+	#send off message runtime avg for (quick) math
+	common.bernardMessageProcessTime(msgProcessStart, msgProcessEnd)

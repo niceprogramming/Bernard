@@ -41,6 +41,7 @@ async def host(ctx):
 	if common.isDiscordAdministrator(ctx.message.author.roles):
 		await discord.bot.say("```Discord.py {0}, Python {1} ({2})```\n🐍🐍🐍🐍🐍".format(discord.discord.__version__, sys.version, sys.platform))
 
+#print what modules have been loaded for the bot
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def modules(ctx):
 	if common.isDiscordAdministrator(ctx.message.author.roles):
@@ -49,3 +50,12 @@ async def modules(ctx):
 			if "bernard" in k:
 				mods = mods + "\n" + k
 		await discord.bot.say("```{0}```".format(mods))
+
+#get the data for time spent message.on_message()
+@admin.command(pass_context=True, no_pm=True, hidden=True)
+async def timings(ctx):
+	if common.isDiscordAdministrator(ctx.message.author.roles):
+		#get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months
+		timeTotal = sum(common.bernardMessageProcessTimes)
+		timeAvg = round(timeTotal / len(common.bernardMessageProcessTimes), 3)
+		await discord.bot.say("```on_message() Avg: {0}s, Longest: {1}s Shortest: {2}s```".format(timeAvg, max(common.bernardMessageProcessTimes), min(common.bernardMessageProcessTimes)))
