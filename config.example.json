@@ -18,7 +18,14 @@
 		"timestamp":"%%a %%b %%d %%H:%%M:%%S UTC %%Y",
 		"channel":"273164941857652737",
 		"gamestatus":"Westworld",
-		"database":"bernard.db"
+		"database":{
+			"sqlite":"bernard.db",
+			"redis":{
+				"host":"172.16.5.251", 
+				"port":6379, 
+				"db":2
+			}
+		}
 	},
 
 	"connectSubscribers":{

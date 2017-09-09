@@ -3,14 +3,16 @@ print("Importing... %s" % __name__)
 from . import config
 from . import common
 from . import discord
+from . import database
 
 import sys
 import os
+import subprocess
 
 #very dangerous administration commands only plz #common.isDiscordBotOwner(ctx.message.author.id):
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True)
 async def admin(ctx):
-    if common.isDiscordBotOwner(ctx.message.author.id):
+    if common.isDiscordAdministrator(ctx.message.author.roles):
         if ctx.invoked_subcommand is None:
             await discord.bot.say('Invalid subcommand...')
 
@@ -23,3 +25,27 @@ async def run(ctx, *, msg: str):
             await discord.bot.say("```{0}```".format(evalData))
         except Exception as e:
             await discord.bot.say("```{0}```".format(e))
+
+#get git revision
+@admin.command(pass_context=True, no_pm=True, hidden=True)
+async def git(ctx):
+	if common.isDiscordAdministrator(ctx.message.author.roles):
+		gitcommit = subprocess.check_output(['git','rev-parse','--short','HEAD']).decode(encoding='UTF-8').rstrip()
+		gitbranch = subprocess.check_output(['git','rev-parse','--abbrev-ref','HEAD']).decode(encoding='UTF-8').rstrip()
+		gitremote = subprocess.check_output(['git','config','--get','remote.origin.url']).decode(encoding='UTF-8').rstrip()
+		await discord.bot.say("```Commit {0}, Branch {1}, Remote {2}```".format(gitcommit, gitbranch, gitremote))
+
+#get python version and discordpy version
+@admin.command(pass_context=True, no_pm=True, hidden=True)
+async def host(ctx):
+	if common.isDiscordAdministrator(ctx.message.author.roles):
+		await discord.bot.say("```Discord.py {0}, Python {1} ({2})```\n🐍🐍🐍🐍🐍".format(discord.discord.__version__, sys.version, sys.platform))
+
+@admin.command(pass_context=True, no_pm=True, hidden=True)
+async def modules(ctx):
+	if common.isDiscordAdministrator(ctx.message.author.roles):
+		mods = ""
+		for k in sys.modules.keys():
+			if "bernard" in k:
+				mods = mods + "\n" + k
+		await discord.bot.say("```{0}```".format(mods))

@@ -1,6 +1,8 @@
 print("Importing... %s" % __name__)
 from . import config
 
+import datetime
+
 global config
 
 def isDiscordBotOwner(id):
@@ -9,3 +11,6 @@ def isDiscordBotOwner(id):
 def isDiscordAdministrator(roles):
 	for role in roles:
 		if role.id == config.cfg['bernard']['administrators']: return True
+
+def datetimeObjectToString(timestamp):
+	return timestamp.strftime("%Y-%m-%d %H:%M:%S")
