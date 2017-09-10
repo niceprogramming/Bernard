@@ -6,7 +6,6 @@ from . import discord
 from . import database
 from . import auditing
 
-import json
 import time
 
 @discord.bot.event
@@ -16,29 +15,13 @@ async def on_message(message):
 	if message.server.id != config.cfg['discord']['server']:
 		return
 
-	#add the message to the message queuer - build the json object
-	msgToQueue = {
-		"timestamp":common.datetimeObjectToString(message.timestamp),
-		"content":message.content,
-		"embeds":message.embeds,
-		"attachments":message.attachments,
-		"member": {
-			"joined":common.datetimeObjectToString(message.author.joined_at),
-			"nick":message.author.nick,
-			"author": str(message.author),
-			"top_role":message.author.top_role.id,
-			},
-		"scored":0,
-		"score":0
-	}
-
-	#send it off
-	database.rds.set(message.channel.id +":"+ message.id, json.dumps(msgToQueue))
+	#package the message as a json object, add to a redis DB and set it to expire to anti-spam calculations
+	database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
 	database.rds.expire(message.channel.id +":"+ message.id, 360)
 
-	#handoff the message to a function dedicated to its feature 
-	#see also https://www.youtube.com/watch?v=ekP0LQEsUh0
+	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0
 
+	#message attachment auditing
 	await auditing.attachments(message)
 
 	#print the message to the console
