@@ -10,6 +10,7 @@ import bernard.administrate
 
 #moderation modules
 import bernard.message
+import bernard.auditing
 
 #start the discord connection
 bernard.discord.bot.run(bernard.config.cfg['discord']['token'])

@@ -48,9 +48,11 @@
 		"minuse":5
 	},
 
-	"fileModeration":{
-		"enable":1,
-		"filetypes":["exe", "com", "bat", "pif", "scr", "msi", "msp", "hta", "jar", "vb", "vbs", "vbe", "ws", "wsf", "ps1", "ps2", "psc1", "psc2", "inf", "dll"]
+	"auditing":{
+		"attachments":{
+			"enable":1,
+			"restricted":["exe", "com", "bat", "pif", "scr", "msi", "msp", "hta", "jar", "vb", "vbs", "vbe", "ws", "wsf", "ps1", "ps2", "psc1", "psc2", "inf", "dll"],
+		},
 	},
 
 	"botScheduler":{

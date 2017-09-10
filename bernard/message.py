@@ -4,6 +4,7 @@ from . import config
 from . import common
 from . import discord
 from . import database
+from . import auditing
 
 import json
 import time
@@ -33,12 +34,12 @@ async def on_message(message):
 
 	#send it off
 	database.rds.set(message.channel.id +":"+ message.id, json.dumps(msgToQueue))
-
+	database.rds.expire(message.channel.id +":"+ message.id, 360)
 
 	#handoff the message to a function dedicated to its feature 
 	#see also https://www.youtube.com/watch?v=ekP0LQEsUh0
 
-	#auditing-attachments.main(message)
+	await auditing.attachments(message)
 
 	#print the message to the console
 	print("Channel: {0.channel} User: {0.author} (ID:{0.author.id}) Message: {0.content}".format(message))
