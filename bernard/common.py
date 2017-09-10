@@ -7,7 +7,7 @@ import json
 
 global config
 
-bernardMessageProcessTimes = [] #def bernardMessageProcessTime(start, end):
+
 bernardStartTimeSets = 0
 
 def isDiscordBotOwner(id):
@@ -19,13 +19,6 @@ def isDiscordAdministrator(roles):
 
 def datetimeObjectToString(timestamp):
 	return timestamp.strftime("%Y-%m-%d %H:%M:%S")
-
-def bernardMessageProcessTime(start, end):
-	global bernardMessageProcessTimes
-	#pop the oldest in the array
-	if len(bernardMessageProcessTimes) >= 20:
-		bernardMessageProcessTimes.pop(0)
-	bernardMessageProcessTimes.append(round(end - start, 3))
 
 def bernardStartTimeSet():
 	global bernardStartTimeSets

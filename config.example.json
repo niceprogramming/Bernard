@@ -18,6 +18,7 @@
 		"timestamp":"%%a %%b %%d %%H:%%M:%%S UTC %%Y",
 		"channel":"273164941857652737",
 		"gamestatus":"Westworld",
+		"ratelimit":30,
 		"database":{
 			"sqlite":"bernard.db",
 			"redis":{

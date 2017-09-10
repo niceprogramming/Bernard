@@ -5,12 +5,11 @@ from . import common
 from . import discord
 from . import database
 from . import auditing
-
-import time
+from . import analytics
 
 @discord.bot.event
 async def on_message(message):
-	msgProcessStart = time.time()
+	msgProcessStart = analytics.getEventTime()
 	#only reply to the guild set in config file
 	if message.server.id != config.cfg['discord']['server']:
 		return
@@ -20,16 +19,18 @@ async def on_message(message):
 	database.rds.expire(message.channel.id +":"+ message.id, 360)
 
 	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0
-
-	#message attachment auditing
-	await auditing.attachments(message)
+	await auditing.attachments(message) #message attachment auditing
 
 	#print the message to the console
 	print("Channel: {0.channel} User: {0.author} (ID:{0.author.id}) Message: {0.content}".format(message))
 
-	#http://discordpy.readthedocs.io/en/latest/faq.html#why-does-on-message-make-my-commands-stop-working
-	await discord.bot.process_commands(message)
-	msgProcessEnd = time.time()
+	#handle message processing per rate limit
+	if analytics.rateLimitAllowProcessing(message):
+		await discord.bot.process_commands(message)
 
-	#send off message runtime avg for (quick) math
-	common.bernardMessageProcessTime(msgProcessStart, msgProcessEnd)
+	#set the rate limit
+	if message.author.id == discord.bot.user.id:
+		analytics.rateLimitNewMessage(message.channel.id, analytics.getEventTime())
+
+	#message processing timings
+	analytics.onMessageProcessTime(msgProcessStart, analytics.getEventTime())

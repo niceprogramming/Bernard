@@ -4,6 +4,7 @@ from . import config
 from . import common
 from . import discord
 from . import database
+from . import analytics
 
 import sys
 import os
@@ -56,6 +57,6 @@ async def modules(ctx):
 async def timings(ctx):
 	if common.isDiscordAdministrator(ctx.message.author.roles):
 		#get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months
-		timeTotal = sum(common.bernardMessageProcessTimes)
-		timeAvg = round(timeTotal / len(common.bernardMessageProcessTimes), 3)
-		await discord.bot.say("```on_message() Avg: {0}s, Longest: {1}s Shortest: {2}s```".format(timeAvg, max(common.bernardMessageProcessTimes), min(common.bernardMessageProcessTimes)))
+		timeTotal = sum(analytics.onMessageProcessTimes)
+		timeAvg = round(timeTotal / len(analytics.onMessageProcessTimes), 3)
+		await discord.bot.say("```on_message() Avg: {0}s, Longest: {1}s Shortest: {2}s```".format(timeAvg, max(analytics.onMessageProcessTimes), min(analytics.onMessageProcessTimes)))
