@@ -22,7 +22,7 @@ async def admin(ctx):
 async def run(ctx, *, msg: str):
     if common.isDiscordBotOwner(ctx.message.author.id):
         try:
-            evalData = eval(msg.replace('`',''))
+            evalData = exec(msg.replace('`',''))
             await discord.bot.say("```{0}```".format(evalData))
         except Exception as e:
             await discord.bot.say("```{0}```".format(e))
@@ -57,6 +57,6 @@ async def modules(ctx):
 async def timings(ctx):
 	if common.isDiscordAdministrator(ctx.message.author.roles):
 		#get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months
-		timeTotal = sum(analytics.onMessageProcessTimes)
-		timeAvg = round(timeTotal / len(analytics.onMessageProcessTimes), 3)
-		await discord.bot.say("```on_message() Avg: {0}s, Longest: {1}s Shortest: {2}s```".format(timeAvg, max(analytics.onMessageProcessTimes), min(analytics.onMessageProcessTimes)))
+		onMessageTimeAvg = round(sum(analytics.onMessageProcessTimes) / len(analytics.onMessageProcessTimes), 3)
+		onMemberTimeAvg = round(sum(analytics.onMemberProcessTimes) / len(analytics.onMemberProcessTimes), 3)
+		await discord.bot.say("```on_message() Avg: {0}s, Longest: {1}s Shortest: {2}s```".format(onMessageTimeAvg, max(analytics.onMessageProcessTimes), min(analytics.onMessageProcessTimes)))

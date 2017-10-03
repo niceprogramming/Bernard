@@ -7,6 +7,7 @@ from . import discord
 import time
 
 onMessageProcessTimes = [] #def bernardMessageProcessTime(start, end):
+onMemberProcessTimes = [] #def analytics.onMemberProcessTime(start, end):
 bernardLastMessageChannels = {}
 bernardGenesis = 0
 
@@ -16,6 +17,12 @@ def onMessageProcessTime(start, end):
 	if len(onMessageProcessTimes) >= 20:
 		onMessageProcessTimes.pop(0)
 	onMessageProcessTimes.append(round(end - start, 3))
+
+def onMemberProcessTime(start, end):
+	global onMemberProcessTimes
+	if len(onMemberProcessTimes) >= 20:
+		onMemberProcessTimes.pop(0)
+	onMemberProcessTimes.append(round(end - start, 3))
 
 def getEventTime():
 	return time.time()
