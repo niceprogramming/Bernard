@@ -9,7 +9,7 @@ from . import discord
 #!hello = ping/pong with more wit :)
 @discord.bot.command(pass_context=True, no_pm=True, description="Says Hello :)")
 async def hello(ctx):
-    await discord.bot.say("Hello {0.message.author.mention}! I am alive and well <:DestiSenpaii:271856531803340800>".format(ctx))
+    await discord.bot.say("Hello {0.message.author.mention}! I am alive and well <:DestiSenpaii:387444476710354944>".format(ctx))
 
 #!isowner = sanity check for ownership for dangerous commands
 @discord.bot.command(pass_context=True, no_pm=True, hidden=True)

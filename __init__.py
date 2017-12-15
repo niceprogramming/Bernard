@@ -8,11 +8,14 @@ import bernard.analytics
 #chat modules
 import bernard.hello
 import bernard.administrate
+import bernard.crypto
 
 #moderation modules
 import bernard.message
 import bernard.auditing
-import bernard.memberstate
+#import bernard.memberstate
 
-#start the discord connection
-bernard.discord.bot.run(bernard.config.cfg['discord']['token'])
+#import bernard.antispam
+
+#starts our threads, this should always be loaded last
+import bernard.threading

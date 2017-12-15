@@ -18,6 +18,8 @@ async def on_message(message):
 	database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
 	database.rds.expire(message.channel.id +":"+ message.id, 360)
 
+	database.rds.publish("AntiSpam", common.packageMessageToQueue(message))
+
 	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0
 	await auditing.attachments(message) #message attachment auditing
 

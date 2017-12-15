@@ -5,7 +5,7 @@ import sqlite3
 import redis
 
 #sqlite
-dbConn = sqlite3.connect(config.cfg['bernard']['database']['sqlite'])
+dbConn = sqlite3.connect(config.cfg['bernard']['database']['sqlite'], check_same_thread=False)
 dbCursor = dbConn.cursor()
 
 #redis - yes im using database namespace for a NoSQL 
