@@ -5,6 +5,7 @@ from . import common
 from . import discord
 from . import database
 from . import analytics
+from . import crypto
 
 import sys
 import os

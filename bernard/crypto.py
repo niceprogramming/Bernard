@@ -6,30 +6,43 @@ from . import discord
 from . import database
 
 import aiohttp
-import requests
 
 @discord.bot.command(pass_context=True, no_pm=True)
 async def cryptosync(ctx):
     #get a fresh list of markets on boot 
     await UpdateCoins().update()
+    await discord.bot.say("Getting new tickers from APIs <:pepoWant:352533805438992395>")
+
+@discord.bot.command(pass_context=True, no_pm=True, aliases=['mc'])
+async def multicrypto(ctx, coin: str, currency="usd", exchange=None):
+    if ctx.message.channel.id != "382400958434377728":
+        return
+
+    c = TickerFetch(coin, currency)
+
+    lookup = await c.multi()
+
+    await discord.bot.say("DBG: ".format(lookup))
 
 @discord.bot.command(pass_context=True, no_pm=True, aliases=['c'])
 async def crypto(ctx, coin: str, currency="usd", exchange=None):
     if ctx.message.channel.id != "382400958434377728":
         return
 
-    #lowercase to help lookups
-    coin = coin.lower()
-    currency = currency.lower()
-
     #init the Coin class with the ticker and currency
-    c = TickerFetch(coin, currency)
+    c = TickerFetch(coin, currency, exchange)
 
     #figure out what exchanges we can use
     lookup = await c.findexchange()
 
     if lookup is None:
-        await discord.bot.say("404: shitcoin lookup not found")
+        #attempt to do a btc lookup as a last resort
+        del c
+        c = TickerFetch(coin, "btc", exchange)
+        lookup = await c.findexchange()
+        if lookup is None:
+            await discord.bot.say("404: shitcoin lookup not found :(")
+            return
 
     if lookup[0] == 1:
         price = await c.gdax()
@@ -47,20 +60,22 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
     if lookup[3] == "usd":
         await discord.bot.say("**{0}**: ${1} USD ({2})".format(lookup[2].upper(),price,lookup[1]))
     elif lookup[3] == "btc":
-        await discord.bot.say("**{0}**: {1} BTC ({2})".format(lookup[2].upper(),price,lookup[1]))
+        await discord.bot.say("**{0}**: {1} BTC ({2})".format(lookup[2].upper(),btcformat(price),lookup[1]))
     elif lookup[3] == "eth":
         await discord.bot.say("**{0}**: {1} ETH ({2})".format(lookup[2].upper(),price,lookup[1]))
     elif lookup[3] == "eur":
         await discord.bot.say("**{0}**: €{1} EUR ({2})".format(lookup[2].upper(),price,lookup[1]))
     else:
         await discord.bot.say("500: internal shitcoin error")
-    
+  
+def btcformat(btc):
+    return format(btc, '.8f')
 
 class Coin:
     def __init__(self, ticker, currency='usd', exchange=None):
-        self.ticker = ticker
+        self.ticker = ticker.lower()
         self.exchange = exchange
-        self.currency = currency
+        self.currency = currency.lower()
 
     async def multi(self):
         self.price_gdax = await self.gdax()
@@ -77,7 +92,7 @@ class Coin:
             return database.dbCursor.fetchone()
         else:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE exchange=? AND ticker=? AND currency=? ORDER BY priority ASC''', (self.exchange, self.ticker, self.currency))
-            return database.dbCursor.fetchone()        
+            return database.dbCursor.fetchone()
 
 class TickerFetch(Coin):
     async def gdax(self):
@@ -109,13 +124,13 @@ class TickerFetch(Coin):
 
     async def poloniex(self):
         async with aiohttp.ClientSession() as session:
-            if self.currency == "USD":
+            if self.currency == "usd":
                 self.currency = "USDT"
             async with session.get('https://poloniex.com/public?command=returnTicker', timeout=2) as r:
                 if r.status == 200:
                     ret = await r.json()
                     try:
-                        return float(ret[self.currency+"_"+self.ticker]['last'])
+                        return float(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
                     except KeyError:
                         return None
                 else:
@@ -135,13 +150,13 @@ class TickerFetch(Coin):
 
     async def binance(self):
         async with aiohttp.ClientSession() as session:
-            if self.currency == "USD":
+            if self.currency == "usd":
                 self.currency = "USDT"
 
-            async with session.get('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker+self.currency, timeout=2) as r:
+            async with session.get('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper(), timeout=2) as r:
                 if r.status == 200:
                     ret = await r.json()
-                    return float(ret['prevClosePrice'])
+                    return float(ret['bidPrice'])
                 else:
                     return None
 
@@ -238,7 +253,8 @@ class UpdateCoins:
                     ret = await r.json()
                     for ticker in ret:
                         # ticker['symbol'][-3:] currency | ticker['symbol'][:3] ticker
-                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (6, "binance", ticker['symbol'][:3].lower(), ticker['symbol'][-3:].lower()))
+                        tick = ticker['symbol'].replace("USDT","usd").lower()
+                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (6, "binance", ticker['symbol'][:3].lower(), tick[-3:]))
                     database.dbConn.commit()
                     return True
                 else:
