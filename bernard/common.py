@@ -4,6 +4,7 @@ from . import config
 import datetime
 import time
 import json
+import aiohttp
 
 global config
 
@@ -80,3 +81,12 @@ def bernardAccountAgeToFriendly(epoch):
 		return "{}Min {}Sec".format(mins, secs)
 
 	#return years, months, days, hours, mins, secs
+
+async def getJSON(url, tmout=5):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, timeout=tmout) as r:
+            if r.status == 200:
+                ret = await r.json()
+                return ret
+            else:
+                return None

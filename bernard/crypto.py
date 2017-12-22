@@ -156,69 +156,58 @@ class Coin:
 
 class TickerFetch(Coin):
     async def gdax(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.gdax.com/products/'+self.ticker+'-'+self.currency+'/ticker', timeout=2) as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    return self.format(ret['price'])
-                else:
-                    return None
+        ret = await common.getJSON('https://api.gdax.com/products/'+self.ticker+'-'+self.currency+'/ticker')
+        if ret is not None:
+            return self.format(ret['price'])
+        else:
+            return "API Lookup Failed"
 
     async def bitfinex(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.bitfinex.com/v1/pubticker/'+self.ticker+self.currency, timeout=2) as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    return self.format(ret['last_price'])
-                else:
-                    return None
+        ret = await common.getJSON('https://api.bitfinex.com/v1/pubticker/'+self.ticker+self.currency)
+        if ret is not None:
+            return self.format(ret['last_price'])
+        else:
+            return "API Lookup Failed"
 
     async def gemini(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.gemini.com/v1/pubticker/'+self.ticker+self.currency, timeout=2) as r:
-                if r.status == 200:
-                    ret = await r.json() 
-                    return self.format(ret['last'])
-                else:
-                    return None
+        ret = await common.getJSON('https://api.gemini.com/v1/pubticker/'+self.ticker+self.currency)
+        if ret is not None:
+            return self.format(ret['last'])
+        else:
+            return "API Lookup Failed"
 
     async def poloniex(self):
-        async with aiohttp.ClientSession() as session:
-            if self.currency == "usd":
-                self.currency = "USDT"
-            async with session.get('https://poloniex.com/public?command=returnTicker', timeout=2) as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    try:
-                        return self.format(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
-                    except KeyError:
-                        return None
-                else:
-                    return None
+        if self.currency == "usd":
+            self.currency = "USDT"
+
+        ret = await common.getJSON('https://poloniex.com/public?command=returnTicker')
+        if ret is not None:
+            try:
+                return self.format(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
+            except KeyError:
+                return None
+        else:
+            return None
 
     async def bittrex(self):
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://bittrex.com/api/v1.1/public/getticker?market='+self.currency.upper()+'-'+self.ticker.upper(), timeout=2) as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    try:
-                        return self.format(ret['result']['Last'])
-                    except:
-                        return None
-                else:
-                    return None
+        ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getticker?market='+self.currency.upper()+'-'+self.ticker.upper())
+        if ret is not None:
+            try:
+                return self.format(ret['result']['Last'])
+            except:
+                return None
+        else:
+            return None
 
     async def binance(self):
-        async with aiohttp.ClientSession() as session:
-            if self.currency == "usd":
-                self.currency = "USDT"
+        if self.currency == "usd":
+            self.currency = "USDT"
 
-            async with session.get('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper(), timeout=2) as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    return self.format(ret['bidPrice'])
-                else:
-                    return None
+        ret = await common.getJSON('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper())
+        if ret is not None:
+            return self.format(ret['bidPrice'])
+        else:
+            return None
 
 class UpdateCoins:
     async def update(self):
@@ -237,85 +226,67 @@ class UpdateCoins:
 
     async def gdax(self):
         print("%s UPDATING GDAX TICKERS..." % __name__)
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.gdax.com/products') as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    for ticker in ret:
-                        # ticker['symbol'][-3:] currency | ticker['symbol'][:3] ticker
-                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (1, "gdax", ticker['base_currency'].lower(), ticker['quote_currency'].lower()))
-                    database.dbConn.commit()
-                    return True
-                else:
-                    return None
+        ret = await common.getJSON('https://api.gdax.com/products')
+        if ret is not None:
+            for ticker in ret:
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (1, "gdax", ticker['base_currency'].lower(), ticker['quote_currency'].lower())) # ticker['symbol'][-3:] currency | ticker['symbol'][:3] ticker
+            database.dbConn.commit()
+            return True
+        else:
+            return None
 
     async def gemini(self):
         print("%s UPDATING GEMINI TICKERS..." % __name__) 
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.gemini.com/v1/symbols') as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    for ticker in ret:
-                        # ticker[-3:] currency | ticker[:3] ticker
-                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (2, "gemini", ticker[:3].lower(), ticker[-3:].lower()))
-                    database.dbConn.commit()
-                    return True
-                else:
-                    return None
+        ret = await common.getJSON('https://api.gemini.com/v1/symbols')
+        if ret is not None:
+            for ticker in ret:
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (2, "gemini", ticker[:3].lower(), ticker[-3:].lower())) # ticker[-3:] currency | ticker[:3] ticker
+            database.dbConn.commit()
+            return True
+        else:
+            return None
 
     async def bitfinex(self):
         print("%s UPDATING BITFINEX TICKERS..." % __name__)
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.bitfinex.com/v1/symbols') as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    for ticker in ret:
-                        #ticker[-3:] curr | ticker[:3] ticker
-                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (3, "bitfinex", ticker[:3], ticker[-3:]))
-                    database.dbConn.commit()
-                    return True
-                else:
-                    return None
+        ret = await common.getJSON('https://api.bitfinex.com/v1/symbols')
+        if ret is not None:
+            for ticker in ret:
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (3, "bitfinex", ticker[:3], ticker[-3:])) #ticker[-3:] curr | ticker[:3] ticker
+            database.dbConn.commit()
+            return True
+        else:
+            return None
 
     async def bittrex(self):
         print("%s UPDATING BITTREX TICKERS..." % __name__)
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://bittrex.com/api/v1.1/public/getmarkets') as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    for ticker in ret['result']:
-                        #ticker['MarketCurrency'] ticker | ticker['BaseCurrency'] currency
-                        database.dbCursor.execute('''INSERT INTO crypto(priority,exchange, ticker, currency) VALUES(?,?,?,?)''', (4, "bittrex", ticker['MarketCurrency'].lower(), ticker['BaseCurrency'].lower().replace("usdt","usd")))
-                    database.dbConn.commit()
-                    return True
-                else:
-                    return None
+        ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getmarkets')
+        if ret is not None:
+            for ticker in ret['result']:
+                database.dbCursor.execute('''INSERT INTO crypto(priority,exchange, ticker, currency) VALUES(?,?,?,?)''', (4, "bittrex", ticker['MarketCurrency'].lower(), ticker['BaseCurrency'].lower().replace("usdt","usd"))) #ticker['MarketCurrency'] ticker | ticker['BaseCurrency'] currency
+            database.dbConn.commit()
+            return True
+        else:
+            return None
 
     async def poloniex(self):
         print("%s UPDATING POLOINEX TICKERS..." % __name__) 
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://poloniex.com/public?command=returnCurrencies') as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    for ticker in ret:
-                        # ticker ticker | ticker['symbol'][:3] ticker
-                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (5, "poloniex", ticker.lower(), "btc"))
-                    database.dbConn.commit()
-                    return True
-                else:
-                    return None
+        ret = await common.getJSON('https://poloniex.com/public?command=returnCurrencies')
+        if ret is not None:
+            for ticker in ret:
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (5, "poloniex", ticker.lower(), "btc")) # ticker ticker | ticker['symbol'][:3] ticker
+            database.dbConn.commit()
+            return True
+        else:
+            return None
 
     async def binance(self):
         print("%s UPDATING BINANCE TICKERS..." % __name__) 
-        async with aiohttp.ClientSession() as session:
-            async with session.get('https://api.binance.com/api/v1/ticker/allPrices') as r:
-                if r.status == 200:
-                    ret = await r.json()
-                    for ticker in ret:
-                        # ticker['symbol'][-3:] currency | ticker['symbol'][:3] ticker
-                        tick = ticker['symbol'].replace("USDT","usd").lower()
-                        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (6, "binance", ticker['symbol'][:3].lower(), tick[-3:]))
-                    database.dbConn.commit()
-                    return True
-                else:
-                    return None
+        ret = await common.getJSON('https://api.binance.com/api/v1/ticker/allPrices')
+        if ret is not None:
+            for ticker in ret:
+                tick = ticker['symbol'].replace("USDT","usd").lower()
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (6, "binance", ticker['symbol'][:3].lower(), tick[-3:])) # ticker['symbol'][-3:] currency | ticker['symbol'][:3] ticker
+            database.dbConn.commit()
+            return True
+        else:
+            return None
