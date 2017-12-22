@@ -6,8 +6,6 @@ from . import discord
 from . import analytics
 from . import database
 
-import aiohttp
-
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True, aliases=['cadm'])
 async def cryptoadmin(ctx):
     if common.isDiscordAdministrator(ctx.message.author.roles) is not True:
