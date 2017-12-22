@@ -3,15 +3,11 @@ print("Importing... %s" % __name__)
 from . import config
 from . import common
 from . import discord
+from . import analytics
 from . import database
 
 import aiohttp
 
-@discord.bot.command(pass_context=True, no_pm=True)
-async def cryptosync(ctx):
-    #get a fresh list of markets on boot 
-    await UpdateCoins().update()
-    await discord.bot.say("Getting new tickers from APIs <:pepoWant:352533805438992395>")
 
 @discord.bot.command(pass_context=True, no_pm=True, aliases=['mc'])
 async def multicrypto(ctx, coin: str, currency="usd", exchange=None):
@@ -19,10 +15,44 @@ async def multicrypto(ctx, coin: str, currency="usd", exchange=None):
         return
 
     c = TickerFetch(coin, currency)
-
     lookup = await c.multi()
+    await discord.bot.say("DBG: {}".format(lookup))
 
-    await discord.bot.say("DBG: ".format(lookup))
+@discord.bot.group(pass_context=True, no_pm=True, hidden=True, aliases=['cadm'])
+async def cryptoadmin(ctx):
+    if common.isDiscordAdministrator(ctx.message.author.roles) is not True:
+        return
+
+@cryptoadmin.command(pass_context=True, no_pm=True, hidden=True)
+async def alias(ctx, action: str, ticker=None, alias=None):
+    if common.isDiscordAdministrator(ctx.message.author.roles):
+        if action == "add":
+            database.dbCursor.execute('''INSERT INTO crypto_lazy(ticker, alias, added, issued) VALUES(?,?,?,?)''', (ticker, alias, analytics.getEventTime(), ctx.message.author.name))
+            database.dbConn.commit()
+            await discord.bot.say("**Alias Added:** `{0}` will use ticker `{1}` in lookup attempts".format(alias, ticker))
+        elif action == "remove":
+            database.dbCursor.execute('''DELETE FROM crypto_lazy WHERE alias=?''', (alias,))
+            database.dbConn.commit()
+            await discord.bot.say("**Aliases removed: `{0}`**".format(alias))
+        elif action == "info":
+            database.dbCursor.execute('''SELECT * FROM crypto_lazy WHERE ticker=? OR alias=?''', (ticker, alias))
+            table = database.dbCursor.fetchall()
+            for result in table:
+                await discord.bot.say("**{0}** using ticker `{1}` added by `{2}`".format(result[1], result[0], result[3]))
+        else:
+            await discord.bot.say("!cryptoadmin alias <add|remove|info> <ticker> <alias>")
+
+@cryptoadmin.command(pass_context=True, no_pm=True)
+async def sync(ctx):
+    database.dbCursor.execute('''SELECT count(*) FROM crypto''')
+    old = database.dbCursor.fetchone()
+
+    await UpdateCoins().update()
+
+    database.dbCursor.execute('''SELECT count(*) FROM crypto''')
+    new = database.dbCursor.fetchone()
+
+    await discord.bot.say("Fetched new tickers from providers. {0} new trade pairs added <:pepoWant:352533805438992395>".format(new[0] - old[0]))
 
 @discord.bot.command(pass_context=True, no_pm=True, aliases=['c'])
 async def crypto(ctx, coin: str, currency="usd", exchange=None):
@@ -58,11 +88,11 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
         price = await c.binance()
 
     if lookup[3] == "usd":
-        await discord.bot.say("**{0}**: ${1} USD ({2})".format(lookup[2].upper(),price,lookup[1]))
+        await discord.bot.say("**{0}**: ${1} USD ({2})".format(lookup[2].upper(),round(price,2),lookup[1]))
     elif lookup[3] == "btc":
         await discord.bot.say("**{0}**: {1} BTC ({2})".format(lookup[2].upper(),btcformat(price),lookup[1]))
     elif lookup[3] == "eth":
-        await discord.bot.say("**{0}**: {1} ETH ({2})".format(lookup[2].upper(),price,lookup[1]))
+        await discord.bot.say("**{0}**: {1} ETH ({2})".format(lookup[2].upper(),round(price,2),lookup[1]))
     elif lookup[3] == "eur":
         await discord.bot.say("**{0}**: €{1} EUR ({2})".format(lookup[2].upper(),price,lookup[1]))
     else:
@@ -87,12 +117,19 @@ class Coin:
         return {"gdax":self.price_gdax,"gemini":self.price_gemini,"bitfinex":self.price_bitfinex,"poloniex":self.price_poloniex,"bittrex":self.price_bittrex,"binance":self.price_binance}
 
     async def findexchange(self):
+        self.lazylookup()
         if self.exchange == None:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE ticker=? AND currency=? ORDER BY priority ASC''', (self.ticker, self.currency))
             return database.dbCursor.fetchone()
         else:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE exchange=? AND ticker=? AND currency=? ORDER BY priority ASC''', (self.exchange, self.ticker, self.currency))
             return database.dbCursor.fetchone()
+
+    def lazylookup(self):
+        database.dbCursor.execute('''SELECT * FROM crypto_lazy WHERE alias=?''', (self.ticker,))
+        lazy = database.dbCursor.fetchone()
+        if lazy is not None:
+            self.ticker = lazy[0]
 
 class TickerFetch(Coin):
     async def gdax(self):
