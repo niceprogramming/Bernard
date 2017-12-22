@@ -8,16 +8,6 @@ from . import database
 
 import aiohttp
 
-
-@discord.bot.command(pass_context=True, no_pm=True, aliases=['mc'])
-async def multicrypto(ctx, coin: str, currency="usd", exchange=None):
-    if ctx.message.channel.id != "382400958434377728":
-        return
-
-    c = TickerFetch(coin, currency)
-    lookup = await c.multi()
-    await discord.bot.say("DBG: {}".format(lookup))
-
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True, aliases=['cadm'])
 async def cryptoadmin(ctx):
     if common.isDiscordAdministrator(ctx.message.author.roles) is not True:
@@ -74,30 +64,36 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
             await discord.bot.say("404: shitcoin lookup not found :(")
             return
 
-    if lookup[0] == 1:
-        price = await c.gdax()
-    elif lookup[0] == 2:
-        price = await c.gemini()
-    elif lookup[0] == 3:
-        price = await c.bitfinex()
-    elif lookup[0] == 4:
-        price = await c.bittrex()
-    elif lookup[0] == 5:
-        price = await c.poloniex()
-    elif lookup[0] == 6:
-        price = await c.binance()
+    #if the data we have is somehow useless
+    if lookup[1] == None:
+        await discord.bot.say("**500: internal shitcoin error.** Attempted price on None. VALUES: {0}".format(lookup))
 
-    if lookup[3] == "usd":
-        await discord.bot.say("**{0}**: ${1} USD ({2})".format(lookup[2].upper(),round(price,2),lookup[1]))
-    elif lookup[3] == "btc":
-        await discord.bot.say("**{0}**: {1} BTC ({2})".format(lookup[2].upper(),btcformat(price),lookup[1]))
-    elif lookup[3] == "eth":
-        await discord.bot.say("**{0}**: {1} ETH ({2})".format(lookup[2].upper(),round(price,2),lookup[1]))
-    elif lookup[3] == "eur":
-        await discord.bot.say("**{0}**: €{1} EUR ({2})".format(lookup[2].upper(),price,lookup[1]))
-    else:
-        await discord.bot.say("500: internal shitcoin error")
-  
+    #get the price from the correct API
+    price, exchange = await c.getprice(lookup)
+
+    await discord.bot.say("**{0}**: {1} ({2})".format(lookup[2].upper(),price,exchange.title()))
+
+@discord.bot.command(pass_context=True, no_pm=True, aliases=['mc'])
+async def multicrypto(ctx, coin: str, currency="usd"):
+    if ctx.message.channel.id != "382400958434377728":
+        return
+
+    #get the lookups of all coins that can use the trade pair
+    c = TickerFetch(coin, currency)
+    lookup = await c.multiexchange()
+
+    #nowhere to go but out
+    if lookup is None:
+        await discord.bot.say("**500: internal shitcoin error.** Attempted price on None. VALUES: {0}".format(lookup))
+    
+    #build the string for chat and send it off
+    formatted = ""
+    for exchange in lookup:
+        pri, exch = await c.getprice(exchange)
+        if pri is not None:
+            formatted += "**{0}**: {1}\n\n".format(exch, pri)
+    await discord.bot.say(formatted)
+
 def btcformat(btc):
     return format(btc, '.8f')
 
@@ -107,14 +103,10 @@ class Coin:
         self.exchange = exchange
         self.currency = currency.lower()
 
-    async def multi(self):
-        self.price_gdax = await self.gdax()
-        self.price_gemini = await self.gemini()
-        self.price_bitfinex = await self.bitfinex()
-        self.price_poloniex = await self.poloniex()
-        self.price_bittrex = await self.bittrex()
-        self.price_binance = await self.binance()
-        return {"gdax":self.price_gdax,"gemini":self.price_gemini,"bitfinex":self.price_bitfinex,"poloniex":self.price_poloniex,"bittrex":self.price_bittrex,"binance":self.price_binance}
+    async def multiexchange(self):
+        self.lazylookup()
+        database.dbCursor.execute('''SELECT * FROM crypto WHERE ticker=? AND currency=? ORDER BY priority ASC''', (self.ticker, self.currency))
+        return database.dbCursor.fetchall()
 
     async def findexchange(self):
         self.lazylookup()
@@ -125,11 +117,42 @@ class Coin:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE exchange=? AND ticker=? AND currency=? ORDER BY priority ASC''', (self.exchange, self.ticker, self.currency))
             return database.dbCursor.fetchone()
 
+    async def getprice(self, lookup):
+        if lookup[0] == 1:
+            price = await self.gdax()
+        elif lookup[0] == 2:
+            price = await self.gemini()
+        elif lookup[0] == 3:
+            price = await self.bitfinex()
+        elif lookup[0] == 4:
+            price = await self.bittrex()
+        elif lookup[0] == 5:
+            price = await self.poloniex()
+        elif lookup[0] == 6:
+            price = await self.binance()
+        exchange = lookup[1]
+        return price, exchange
+
     def lazylookup(self):
         database.dbCursor.execute('''SELECT * FROM crypto_lazy WHERE alias=?''', (self.ticker,))
         lazy = database.dbCursor.fetchone()
         if lazy is not None:
             self.ticker = lazy[0]
+
+    def format(self, raw):
+        if raw is None:
+            return "ERR: NONE"
+
+        if self.currency == "usd" or self.currency == "USDT":
+            return "${:,.2f} USD".format(float(raw))
+        elif self.currency == "btc":
+            return "{0} BTC".format(btcformat(float(raw)))
+        elif self.currency == "eth":
+            return "{0} ETH".format(btcformat(float(raw)))
+        elif self.currency == "eur":
+            return "€{:,.2f} EUR".format(float(raw))
+        else:
+            return "ERR: UNKNOWN CURRRENCY in Coin.format(self, raw)"
 
 class TickerFetch(Coin):
     async def gdax(self):
@@ -137,7 +160,7 @@ class TickerFetch(Coin):
             async with session.get('https://api.gdax.com/products/'+self.ticker+'-'+self.currency+'/ticker', timeout=2) as r:
                 if r.status == 200:
                     ret = await r.json()
-                    return float(ret['price'])
+                    return self.format(ret['price'])
                 else:
                     return None
 
@@ -146,7 +169,7 @@ class TickerFetch(Coin):
             async with session.get('https://api.bitfinex.com/v1/pubticker/'+self.ticker+self.currency, timeout=2) as r:
                 if r.status == 200:
                     ret = await r.json()
-                    return float(ret['last_price'])
+                    return self.format(ret['last_price'])
                 else:
                     return None
 
@@ -154,8 +177,8 @@ class TickerFetch(Coin):
         async with aiohttp.ClientSession() as session:
             async with session.get('https://api.gemini.com/v1/pubticker/'+self.ticker+self.currency, timeout=2) as r:
                 if r.status == 200:
-                    ret = await r.json()
-                    return float(ret['last'])
+                    ret = await r.json() 
+                    return self.format(ret['last'])
                 else:
                     return None
 
@@ -167,7 +190,7 @@ class TickerFetch(Coin):
                 if r.status == 200:
                     ret = await r.json()
                     try:
-                        return float(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
+                        return self.format(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
                     except KeyError:
                         return None
                 else:
@@ -179,7 +202,7 @@ class TickerFetch(Coin):
                 if r.status == 200:
                     ret = await r.json()
                     try:
-                        return float(ret['result']['Last'])
+                        return self.format(ret['result']['Last'])
                     except:
                         return None
                 else:
@@ -193,7 +216,7 @@ class TickerFetch(Coin):
             async with session.get('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper(), timeout=2) as r:
                 if r.status == 200:
                     ret = await r.json()
-                    return float(ret['bidPrice'])
+                    return self.format(ret['bidPrice'])
                 else:
                     return None
 
