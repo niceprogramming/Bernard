@@ -15,18 +15,20 @@ async def cryptoadmin(ctx):
 async def alias(ctx, action: str, ticker=None, alias=None):
     if common.isDiscordAdministrator(ctx.message.author.roles):
         if action == "add":
-            database.dbCursor.execute('''INSERT INTO crypto_lazy(ticker, alias, added, issued) VALUES(?,?,?,?)''', (ticker, alias, analytics.getEventTime(), ctx.message.author.name))
+            database.dbCursor.execute('''INSERT OR IGNORE INTO crypto_lazy(ticker, alias, added, issued) VALUES(?,?,?,?)''', (ticker.lower(), alias.lower(), analytics.getEventTime(), ctx.message.author.name))
             database.dbConn.commit()
             await discord.bot.say("**Alias Added:** `{0}` will use ticker `{1}` in lookup attempts".format(alias, ticker))
         elif action == "remove":
-            database.dbCursor.execute('''DELETE FROM crypto_lazy WHERE alias=?''', (alias,))
+            database.dbCursor.execute('''DELETE FROM crypto_lazy WHERE alias=? AND ticker=?''', (alias.lower(), ticker.lower()))
             database.dbConn.commit()
-            await discord.bot.say("**Aliases removed: `{0}`**".format(alias))
+            await discord.bot.say("**Aliases removed:** `{0}` no longer uses ticker `{1}` ".format(alias.lower(), ticker.lower()))
         elif action == "info":
             database.dbCursor.execute('''SELECT * FROM crypto_lazy WHERE ticker=? OR alias=?''', (ticker, alias))
             table = database.dbCursor.fetchall()
+            ret = "Ticker/Alias Pairs: **{0}**\n\n".format(ticker.upper())
             for result in table:
-                await discord.bot.say("**{0}** using ticker `{1}` added by `{2}`".format(result[1], result[0], result[3]))
+                ret += "**{0}** using ticker `{1}` added by `{2}`\n".format(result[1], result[0], result[3])
+            await discord.bot.say(ret)
         else:
             await discord.bot.say("!cryptoadmin alias <add|remove|info> <ticker> <alias>")
 
@@ -92,9 +94,6 @@ async def multicrypto(ctx, coin: str, currency="usd"):
             formatted += "**{0}**: {1}\n\n".format(exch, pri)
     await discord.bot.say(formatted)
 
-def btcformat(btc):
-    return format(btc, '.8f')
-
 class Coin:
     def __init__(self, ticker, currency='usd', exchange=None):
         self.ticker = ticker.lower()
@@ -144,9 +143,9 @@ class Coin:
         if self.currency == "usd" or self.currency == "USDT":
             return "${:,.2f} USD".format(float(raw))
         elif self.currency == "btc":
-            return "{0} BTC".format(btcformat(float(raw)))
+            return "{:.8f} BTC".format(float(raw))
         elif self.currency == "eth":
-            return "{0} ETH".format(btcformat(float(raw)))
+            return "{:.8f} ETH".format(float(raw))
         elif self.currency == "eur":
             return "€{:,.2f} EUR".format(float(raw))
         else:
