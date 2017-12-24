@@ -190,12 +190,8 @@ class TickerFetch(Coin):
         ret = await common.getJSON('https://poloniex.com/public?command=returnTicker')
         if ret is not None:
             try:
-                return self.format(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
+                return self.format(ret[self.currency.upper().replace("USD","USDT")+"_"+self.ticker.upper()]['last'])
             except KeyError:
-                try: 
-                    return self.format(ret[self.ticker.upper()+"_"+self.currency.upper()]['last'])
-                except KeyError:
-                    return None
                 return None
         else:
             return None
@@ -211,7 +207,7 @@ class TickerFetch(Coin):
             return None       
 
     async def bittrex(self):
-        ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getticker?market='+self.currency.upper()+'-'+self.ticker.upper())
+        ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getticker?market='+self.currency.replace("usd","usdt")+'-'+self.ticker)
         if ret is not None:
             try:
                 return self.format(ret['result']['Last'])
@@ -250,6 +246,7 @@ class UpdateCoins:
 
     async def flush(self):
         database.dbCursor.execute('''DELETE FROM crypto;''')
+        database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (7, "poloniex", "btc", "usd"))
         database.dbConn.commit()
 
     async def gdax(self):
@@ -301,7 +298,7 @@ class UpdateCoins:
         ret = await common.getJSON('https://poloniex.com/public?command=returnCurrencies')
         if ret is not None:
             for ticker in ret:
-                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (7, "poloniex", ticker.lower(), "btc")) # ticker ticker | ticker['symbol'][:3] ticker
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (7, "poloniex", ticker.replace("USDT","usd").lower(), "btc")) # ticker ticker | ticker['symbol'][:3] ticker
             database.dbConn.commit()
             return True
         else:

@@ -28,6 +28,12 @@ async def run(ctx, *, msg: str):
         except Exception as e:
             await discord.bot.say("```{0}```".format(e))
 
+#raw sql commands, another stupid and dangerous command to be allowed by normies
+#@admin.command(pass_context=True, no_pm=True, hidden=True)
+#async def run(ctx, *, query: str):
+#    if common.isDiscordBotOwner(ctx.message.author.id):
+
+
 #get git revision
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def git(ctx):
