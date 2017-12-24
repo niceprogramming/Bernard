@@ -34,6 +34,9 @@ async def alias(ctx, action: str, ticker=None, alias=None):
 
 @cryptoadmin.command(pass_context=True, no_pm=True)
 async def sync(ctx):
+    if common.isDiscordAdministrator(ctx.message.author.roles) is not True:
+        return
+
     database.dbCursor.execute('''SELECT count(*) FROM crypto''')
     old = database.dbCursor.fetchone()
 
@@ -85,6 +88,12 @@ async def multicrypto(ctx, coin: str, currency="usd"):
     #nowhere to go but out
     if lookup is None:
         await discord.bot.say("**500: internal shitcoin error.** Attempted price on None. VALUES: {0}".format(lookup))
+        return
+    elif len(lookup) == 1:
+        await discord.bot.say("**500: internal shitcoin error.** Only 1 coin available for lookup pair. Try !c instead.")
+        return
+    else:
+        pass
     
     #build the string for chat and send it off
     formatted = ""
@@ -124,9 +133,13 @@ class Coin:
         elif lookup[0] == 4:
             price = await self.bittrex()
         elif lookup[0] == 5:
-            price = await self.poloniex()
+            price = await self.bitstamp()
         elif lookup[0] == 6:
             price = await self.binance()
+        elif lookup[0] == 7:
+            price = await self.poloniex()
+        elif lookup[0] == 8:
+            price = await self.kraken()
         exchange = lookup[1]
         return price, exchange
 
@@ -174,17 +187,28 @@ class TickerFetch(Coin):
             return "API Lookup Failed"
 
     async def poloniex(self):
-        if self.currency == "usd":
-            self.currency = "USDT"
-
         ret = await common.getJSON('https://poloniex.com/public?command=returnTicker')
         if ret is not None:
             try:
                 return self.format(ret[self.currency.upper()+"_"+self.ticker.upper()]['last'])
             except KeyError:
+                try: 
+                    return self.format(ret[self.ticker.upper()+"_"+self.currency.upper()]['last'])
+                except KeyError:
+                    return None
                 return None
         else:
             return None
+
+    async def bitstamp(self):
+        ret = await common.getJSON('https://www.bitstamp.net/api/v2/ticker/'+self.ticker+''+self.currency+'/')
+        if ret is not None:
+            try:
+                return self.format(ret['last'])
+            except:
+                return None
+        else:
+            return None       
 
     async def bittrex(self):
         ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getticker?market='+self.currency.upper()+'-'+self.ticker.upper())
@@ -197,12 +221,17 @@ class TickerFetch(Coin):
             return None
 
     async def binance(self):
-        if self.currency == "usd":
-            self.currency = "USDT"
-
         ret = await common.getJSON('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper())
         if ret is not None:
             return self.format(ret['bidPrice'])
+        else:
+            return None
+
+    async def kraken(self):
+        ret = await common.getJSON('https://api.kraken.com/0/public/Ticker?pair='+self.ticker.replace("btc","xbt")+self.currency)
+        if ret is not None:
+            for ticker, data in ret['result'].items():
+                return self.format(data['c'][0])
         else:
             return None
 
@@ -215,7 +244,9 @@ class UpdateCoins:
         await self.bitfinex()
         await self.bittrex()
         await self.poloniex()
+        await self.bitstamp()
         await self.binance()
+        await self.kraken()
 
     async def flush(self):
         database.dbCursor.execute('''DELETE FROM crypto;''')
@@ -270,7 +301,19 @@ class UpdateCoins:
         ret = await common.getJSON('https://poloniex.com/public?command=returnCurrencies')
         if ret is not None:
             for ticker in ret:
-                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (5, "poloniex", ticker.lower(), "btc")) # ticker ticker | ticker['symbol'][:3] ticker
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (7, "poloniex", ticker.lower(), "btc")) # ticker ticker | ticker['symbol'][:3] ticker
+            database.dbConn.commit()
+            return True
+        else:
+            return None
+
+    async def bitstamp(self):
+        print("%s UPDATING BITSTAMP TICKERS..." % __name__) 
+        ret = await common.getJSON('https://www.bitstamp.net/api/v2/trading-pairs-info/')
+        if ret is not None:
+            for ticker in ret:
+                split = ticker['name'].split("/")
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (5, "bitstamp", split[0].lower(), split[1].lower()))
             database.dbConn.commit()
             return True
         else:
@@ -287,3 +330,15 @@ class UpdateCoins:
             return True
         else:
             return None
+
+    async def kraken(self):
+        print("%s UPDATING KRAKEN TICKERS..." % __name__) 
+        ret = await common.getJSON('https://api.kraken.com/0/public/AssetPairs')
+        if ret is not None:
+            for ticker, data in ret['result'].items():
+                d = data['altname'].replace(".d","").replace("XBT","btc").lower()
+                database.dbCursor.execute('''INSERT INTO crypto(priority, exchange, ticker, currency) VALUES(?,?,?,?)''', (8, "kraken", d[:3], d[-3:]))
+            database.dbConn.commit()
+            return True
+        else:
+            return None            

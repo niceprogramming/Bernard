@@ -83,10 +83,14 @@ def bernardAccountAgeToFriendly(epoch):
 	#return years, months, days, hours, mins, secs
 
 async def getJSON(url, tmout=5):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, timeout=tmout) as r:
-            if r.status == 200:
-                ret = await r.json()
-                return ret
-            else:
-                return None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=tmout) as r:
+                if r.status == 200:
+                    ret = await r.json()
+                    return ret
+                else:
+                    return None
+    except Exception as e:
+        print(e)
+        return None
