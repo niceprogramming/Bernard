@@ -36,3 +36,9 @@ async def on_message(message):
 
 	#message processing timings
 	analytics.onMessageProcessTime(msgProcessStart, analytics.getEventTime())
+
+async def pubsub_publisher():
+	await discord.client.wait_until_ready()
+	pass
+
+	#discord.client

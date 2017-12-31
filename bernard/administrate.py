@@ -30,8 +30,9 @@ async def run(ctx, *, msg: str):
 
 #raw sql commands, another stupid and dangerous command to be allowed by normies
 #@admin.command(pass_context=True, no_pm=True, hidden=True)
-#async def run(ctx, *, query: str):
+#async def sql(ctx, *, query: str):
 #    if common.isDiscordBotOwner(ctx.message.author.id):
+#    	print(query)
 
 
 #get git revision
