@@ -5,7 +5,7 @@ from . import common
 from . import discord
 
 async def attachments(msg):
-    if common.isDiscordAdministrator(msg.author.roles) is not True:
+    if common.isDiscordAdministrator(msg.author) is not True:
         if msg.attachments:
             for attachment in msg.attachments:
                 exploded = attachment['filename'].split(".")[1:]

@@ -46,7 +46,7 @@ def rateLimitSinceLastMessage(channel):
 #controls if we should process commands or not
 def rateLimitAllowProcessing(msg):
 	last = rateLimitSinceLastMessage(msg.channel.id)
-	if common.isDiscordAdministrator(msg.author.roles):
+	if common.isDiscordAdministrator(msg.author):
 		return True
 	elif last >= config.cfg['bernard']['ratelimit']:
 		return True

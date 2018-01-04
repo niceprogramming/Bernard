@@ -14,7 +14,7 @@ import subprocess
 #very dangerous administration commands only plz #common.isDiscordBotOwner(ctx.message.author.id):
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True)
 async def admin(ctx):
-    if common.isDiscordAdministrator(ctx.message.author.roles):
+    if common.isDiscordAdministrator(ctx.message.author):
         if ctx.invoked_subcommand is None:
             await discord.bot.say('Invalid subcommand...')
 
@@ -38,7 +38,7 @@ async def run(ctx, *, msg: str):
 #get git revision
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def git(ctx):
-	if common.isDiscordAdministrator(ctx.message.author.roles):
+	if common.isDiscordAdministrator(ctx.message.author):
 		gitcommit = subprocess.check_output(['git','rev-parse','--short','HEAD']).decode(encoding='UTF-8').rstrip()
 		gitbranch = subprocess.check_output(['git','rev-parse','--abbrev-ref','HEAD']).decode(encoding='UTF-8').rstrip()
 		gitremote = subprocess.check_output(['git','config','--get','remote.origin.url']).decode(encoding='UTF-8').rstrip()
@@ -47,13 +47,13 @@ async def git(ctx):
 #get python version and discordpy version
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def host(ctx):
-	if common.isDiscordAdministrator(ctx.message.author.roles):
+	if common.isDiscordAdministrator(ctx.message.author):
 		await discord.bot.say("```Discord.py {0}, Python {1} ({2})```\n🐍🐍🐍🐍🐍".format(discord.discord.__version__, sys.version, sys.platform))
 
 #print what modules have been loaded for the bot
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def modules(ctx):
-	if common.isDiscordAdministrator(ctx.message.author.roles):
+	if common.isDiscordAdministrator(ctx.message.author):
 		mods = ""
 		for k in sys.modules.keys():
 			if "bernard" in k:
@@ -63,7 +63,7 @@ async def modules(ctx):
 #get the data for time spent message.on_message()
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def timings(ctx):
-	if common.isDiscordAdministrator(ctx.message.author.roles):
+	if common.isDiscordAdministrator(ctx.message.author):
 		#get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months
 		onMessageTimeAvg = round(sum(analytics.onMessageProcessTimes) / len(analytics.onMessageProcessTimes), 3)
 		try:

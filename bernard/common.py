@@ -14,8 +14,10 @@ bernardStartTimeSets = 0
 def isDiscordBotOwner(id):
 	return id == config.cfg['bernard']['owner']
 
-def isDiscordAdministrator(roles):
-	for role in roles:
+def isDiscordAdministrator(member):
+	if isDiscordBotOwner(member.id): return True
+
+	for role in member.roles:
 		if role.id == config.cfg['bernard']['administrators']: return True
 
 def datetimeObjectToString(timestamp):

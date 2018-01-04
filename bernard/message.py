@@ -11,8 +11,13 @@ from . import analytics
 async def on_message(message):
 	msgProcessStart = analytics.getEventTime()
 	#only reply to the guild set in config file
-	if common.isDiscordMainServer(message.server.id) is not True:
+	try:
+		if common.isDiscordMainServer(message.server.id) is not True:
+			return
+	except AttributeError:
+		await discord.bot.process_commands(message)
 		return
+
 
 	#package the message as a json object, add to a redis DB and set it to expire to anti-spam calculations
 	database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
