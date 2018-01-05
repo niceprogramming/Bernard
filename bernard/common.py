@@ -1,13 +1,11 @@
-print("Importing... %s" % __name__)
+print("%s loading..." % __name__) 
+
 from . import config
 
 import datetime
 import time
 import json
 import aiohttp
-
-global config
-
 
 bernardStartTimeSets = 0
 
@@ -94,5 +92,5 @@ async def getJSON(url, tmout=5):
                 else:
                     return None
     except Exception as e:
-        print(e)
+        print("{0} Exception: {1}".format(__name__, e))
         return None

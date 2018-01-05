@@ -1,4 +1,4 @@
-print("Importing... %s" % __name__)
+print("%s loading..." % __name__) 
 
 from . import config
 from . import common

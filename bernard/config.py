@@ -1,4 +1,4 @@
-print("Importing... %s" % __name__)
+print("%s loading..." % __name__) 
 import json
 
 #load the json file as cfg, allows access as bernard.cfg. Stop on error.

@@ -1,4 +1,4 @@
-print("Importing... %s" % __name__)
+print("%s loading..." % __name__) 
 
 from . import config
 from . import common
@@ -29,7 +29,7 @@ async def on_message(message):
 	await auditing.attachments(message) #message attachment auditing
 
 	#print the message to the console
-	print("Channel: {0.channel} User: {0.author} (ID:{0.author.id}) Message: {0.content}".format(message))
+	print("{0}: Channel: {1.channel} User: {1.author} (ID:{1.author.id}) Message: {1.content}".format(__name__, message))
 
 	#handle message processing per rate limit
 	if analytics.rateLimitAllowProcessing(message):
