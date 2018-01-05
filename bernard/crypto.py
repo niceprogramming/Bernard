@@ -52,6 +52,8 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
     if ctx.message.channel.id != "382400958434377728":
         return
 
+    await discord.bot.send_typing(ctx.message.channel)
+
     #init the Coin class with the ticker and currency
     c = TickerFetch(coin, currency, exchange)
 
@@ -80,6 +82,8 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
 async def multicrypto(ctx, coin: str, currency="usd"):
     if ctx.message.channel.id != "382400958434377728":
         return
+
+    await discord.bot.send_typing(ctx.message.channel)
 
     #get the lookups of all coins that can use the trade pair
     c = TickerFetch(coin, currency)
