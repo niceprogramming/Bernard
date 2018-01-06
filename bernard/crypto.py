@@ -37,6 +37,8 @@ async def sync(ctx):
     if common.isDiscordAdministrator(ctx.message.author) is not True:
         return
 
+    await discord.bot.send_typing(ctx.message.channel)
+
     database.dbCursor.execute('''SELECT count(*) FROM crypto''')
     old = database.dbCursor.fetchone()
 
@@ -89,12 +91,19 @@ async def multicrypto(ctx, coin: str, currency="usd"):
     c = TickerFetch(coin, currency)
     lookup = await c.multiexchange()
 
+    #if the first lookup falls flat on its face try btc like !c
+    if len(lookup) <= 1:
+        del c
+        c = TickerFetch(coin, "btc")
+        lookup = await c.multiexchange()
+        print("{0}: multicoin function falling back to BTC: Values {1}".format(__name__, len(lookup)))
+
     #nowhere to go but out
-    if lookup is None:
-        await discord.bot.say("**500: internal shitcoin error.** Attempted price on None.")
+    if len(lookup) == 0:
+        await discord.bot.say("**500: Internal Shitcoin Error.** Attempted price on None.")
         return
     elif len(lookup) == 1:
-        await discord.bot.say("**500: internal shitcoin error.** Only 1 coin available for lookup pair. Try !c instead.")
+        await discord.bot.say("**500: Internal Shitcoin Error.** Only 1 coin available for lookup pair. Try !c instead.")
         return
     else:
         pass
@@ -152,6 +161,8 @@ class Coin:
             price = await self.poloniex()
         elif lookup[1] == "kraken":
             price = await self.kraken()
+        elif lookup[1] == "kucoin":
+            price = await self.kucoin()
         exchange = lookup[1]
         return price, exchange
 
@@ -243,6 +254,13 @@ class TickerFetch(Coin):
         else:
             return None
 
+    async def kucoin(self):
+        ret = await common.getJSON('https://api.kucoin.com/v1/open/tick?symbol='+self.ticker+'-'+self.currency.replace("usd","usdt"))
+        if ret is not None:
+            return self.format(ret['data']['lastDealPrice'])
+        else:
+            return None
+
 class UpdateCoins:
     async def update(self):
         await self.flush()
@@ -255,6 +273,7 @@ class UpdateCoins:
         await self.bitstamp()
         await self.binance()
         await self.kraken()
+        await self.kucoin()
 
     async def flush(self):
         database.dbCursor.execute('''DELETE FROM crypto;''')
@@ -291,7 +310,7 @@ class UpdateCoins:
         if ret is not None:
             for ticker in ret:
                 unique = "bitfinex" + ticker[:3] + ticker[-3:]
-                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (4, "bitfinex", ticker[:3], ticker[-3:], unique)) #ticker[-3:] curr | ticker[:3] ticker
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (5, "bitfinex", ticker[:3], ticker[-3:], unique)) #ticker[-3:] curr | ticker[:3] ticker
             database.dbConn.commit()
             return True
         else:
@@ -303,7 +322,7 @@ class UpdateCoins:
         if ret is not None:
             for ticker in ret['result']:
                 unique = "bittrex" + ticker['MarketCurrency'].lower() + ticker['BaseCurrency'].lower().replace("usdt","usd")
-                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority,exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (5, "bittrex", ticker['MarketCurrency'].lower(), ticker['BaseCurrency'].lower().replace("usdt","usd"), unique)) #ticker['MarketCurrency'] ticker | ticker['BaseCurrency'] currency            database.dbConn.commit()
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority,exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (6, "bittrex", ticker['MarketCurrency'].lower(), ticker['BaseCurrency'].lower().replace("usdt","usd"), unique)) #ticker['MarketCurrency'] ticker | ticker['BaseCurrency'] currency            database.dbConn.commit()
             return True
         else:
             return None
@@ -314,7 +333,7 @@ class UpdateCoins:
         if ret is not None:
             for ticker in ret:
                 unique = "poloniex" + ticker.replace("USDT","usd").lower() + "btc"
-                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (7, "poloniex", ticker.replace("USDT","usd").lower(), "btc", unique)) # ticker ticker | ticker['symbol'][:3] ticker
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (8, "poloniex", ticker.replace("USDT","usd").lower(), "btc", unique)) # ticker ticker | ticker['symbol'][:3] ticker
             database.dbConn.commit()
             return True
         else:
@@ -327,7 +346,7 @@ class UpdateCoins:
             for ticker in ret:
                 split = ticker['name'].split("/")
                 unique = "bitstamp" + split[0].lower() + split[1].lower()
-                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (6, "bitstamp", split[0].lower(), split[1].lower(), unique))
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (7, "bitstamp", split[0].lower(), split[1].lower(), unique))
             database.dbConn.commit()
             return True
         else:
@@ -357,4 +376,16 @@ class UpdateCoins:
             database.dbConn.commit()
             return True
         else:
-            return None            
+            return None
+
+    async def kucoin(self):
+        print("%s UPDATING KUCOIN TICKERS..." % __name__) 
+        ret = await common.getJSON('https://api.kucoin.com/v1/market/open/symbols')
+        if ret is not None:
+            for ticker in ret['data']:
+                unique = "kucoin" + ticker['coinType'].lower() + ticker['coinTypePair'].lower().replace("usdt","usd")
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (4, "kucoin", ticker['coinType'].lower(), ticker['coinTypePair'].lower().replace("usdt","usd"), unique))
+            database.dbConn.commit()
+            return True
+        else:
+            return None
