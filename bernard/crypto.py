@@ -51,9 +51,6 @@ async def sync(ctx):
 
 @discord.bot.command(pass_context=True, aliases=['c'])
 async def crypto(ctx, coin: str, currency="usd", exchange=None):
-    if ctx.message.channel.id != "382400958434377728":
-        return
-
     await discord.bot.send_typing(ctx.message.channel)
 
     #init the Coin class with the ticker and currency
@@ -78,13 +75,14 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
     #get the price from the correct API
     price, exchange = await c.getprice(lookup)
 
-    await discord.bot.say("**{0}**: {1} ({2})".format(lookup[2].upper(),price,exchange.title()))
+    if c.currency == "usd":
+        await discord.bot.say("**{0}**: {1} ({2})".format(lookup[2].upper(),price,exchange.title()))
+    else:
+        usdrough = await c.force_fiat()        
+        await discord.bot.say("**{0}**: {1} ({2}) {3}".format(lookup[2].upper(),price,exchange.title(),usdrough))
 
 @discord.bot.command(pass_context=True, aliases=['mc'])
 async def multicrypto(ctx, coin: str, currency="usd"):
-    if ctx.message.channel.id != "382400958434377728":
-        return
-
     await discord.bot.send_typing(ctx.message.channel)
 
     #get the lookups of all coins that can use the trade pair
@@ -113,7 +111,11 @@ async def multicrypto(ctx, coin: str, currency="usd"):
     for exchange in lookup:
         pri, exch = await c.getprice(exchange)
         if pri is not None:
-            formatted += "**{0}**: {1}\n\n".format(exch, pri)
+            if c.currency == "usd":
+                formatted += "**{0}**: {1}\n\n".format(exch, pri)
+            else:
+                usdrough = await c.force_fiat()
+                formatted += "**{0}**: {1} {2}\n\n".format(exch, pri, usdrough) 
     await discord.bot.say(formatted)
 
 @discord.bot.command(pass_context=True, aliases=['cweb'])
@@ -143,6 +145,18 @@ class Coin:
         else:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE exchange=? AND ticker=? AND currency=? ORDER BY priority ASC''', (self.exchange, self.ticker, self.currency))
             return database.dbCursor.fetchone()
+
+    async def force_fiat(self):
+        if self.currency == "btc":
+            ret = await common.getJSON('https://api.gdax.com/products/btc-usd/ticker')
+        elif self.currency == "eth":
+            ret = await common.getJSON('https://api.gdax.com/products/eth-usd/ticker')
+        else:
+            print("{0}: WARNING cannot force fiat price on currency when it's {1}".format(__name__, self.currency))
+            return None
+
+        form = (float(ret['price'])*float(self.valued))
+        return "~${:,.2f} USD".format(float(form))
 
     async def getprice(self, lookup):
         if lookup[1] == "gdax":
@@ -191,6 +205,7 @@ class TickerFetch(Coin):
     async def gdax(self):
         ret = await common.getJSON('https://api.gdax.com/products/'+self.ticker+'-'+self.currency+'/ticker')
         if ret is not None:
+            self.valued = ret['price']
             return self.format(ret['price'])
         else:
             return "API Lookup Failed"
@@ -198,6 +213,7 @@ class TickerFetch(Coin):
     async def bitfinex(self):
         ret = await common.getJSON('https://api.bitfinex.com/v1/pubticker/'+self.ticker+self.currency)
         if ret is not None:
+            self.valued = ret['last_price']
             return self.format(ret['last_price'])
         else:
             return "API Lookup Failed"
@@ -205,6 +221,7 @@ class TickerFetch(Coin):
     async def gemini(self):
         ret = await common.getJSON('https://api.gemini.com/v1/pubticker/'+self.ticker+self.currency)
         if ret is not None:
+            self.valued = ret['last']
             return self.format(ret['last'])
         else:
             return "API Lookup Failed"
@@ -213,6 +230,7 @@ class TickerFetch(Coin):
         ret = await common.getJSON('https://poloniex.com/public?command=returnTicker')
         if ret is not None:
             try:
+                self.valued = None #fuck poloinex
                 return self.format(ret[self.currency.upper().replace("USD","USDT")+"_"+self.ticker.upper()]['last'])
             except KeyError:
                 return None
@@ -223,6 +241,7 @@ class TickerFetch(Coin):
         ret = await common.getJSON('https://www.bitstamp.net/api/v2/ticker/'+self.ticker+''+self.currency+'/')
         if ret is not None:
             try:
+                self.valued = ret['last']
                 return self.format(ret['last'])
             except:
                 return None
@@ -233,6 +252,7 @@ class TickerFetch(Coin):
         ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getticker?market='+self.currency.replace("usd","usdt")+'-'+self.ticker)
         if ret is not None:
             try:
+                self.valued = ret['result']['Last']
                 return self.format(ret['result']['Last'])
             except:
                 return None
@@ -242,6 +262,7 @@ class TickerFetch(Coin):
     async def binance(self):
         ret = await common.getJSON('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper())
         if ret is not None:
+            self.valued = ret['bidPrice']
             return self.format(ret['bidPrice'])
         else:
             return None
@@ -250,6 +271,7 @@ class TickerFetch(Coin):
         ret = await common.getJSON('https://api.kraken.com/0/public/Ticker?pair='+self.ticker.replace("btc","xbt")+self.currency)
         if ret is not None:
             for ticker, data in ret['result'].items():
+                self.valued = data['c'][0]
                 return self.format(data['c'][0])
         else:
             return None
@@ -257,6 +279,7 @@ class TickerFetch(Coin):
     async def kucoin(self):
         ret = await common.getJSON('https://api.kucoin.com/v1/open/tick?symbol='+self.ticker+'-'+self.currency.replace("usd","usdt"))
         if ret is not None:
+            self.valued = ret['data']['lastDealPrice']
             return self.format(ret['data']['lastDealPrice'])
         else:
             return None
