@@ -2,6 +2,7 @@
 import bernard.config
 import bernard.common
 import bernard.discord
+import bernard.logging
 import bernard.database
 import bernard.analytics
 
@@ -14,7 +15,6 @@ import bernard.crypto
 import bernard.message
 import bernard.auditing
 import bernard.purger
-import bernard.errorhandler
 #import bernard.memberstate
 
 #import bernard.antispam
