@@ -177,6 +177,8 @@ class Coin:
             price = await self.kraken()
         elif lookup[1] == "kucoin":
             price = await self.kucoin()
+        elif lookup[1] ==  "coinmarketcap":
+            price = await self.coinmarketcap()
         exchange = lookup[1]
         return price, exchange
 
@@ -284,6 +286,18 @@ class TickerFetch(Coin):
         else:
             return None
 
+    async def coinmarketcap(self):
+        database.dbCursor.execute('''SELECT * FROM crypto_cmc WHERE ticker=?''', (self.ticker.upper(),))
+        retdb = database.dbCursor.fetchone()
+
+        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/'+retdb[1]+'/')
+
+        if ret is not None:
+            self.valued = ret[0]['price_btc']
+            return self.format(ret[0]['price_btc'])
+        else:
+            return None
+
 class UpdateCoins:
     async def update(self):
         await self.flush()
@@ -297,10 +311,11 @@ class UpdateCoins:
         await self.binance()
         await self.kraken()
         await self.kucoin()
+        await self.coinmarketcap()
 
     async def flush(self):
         database.dbCursor.execute('''DELETE FROM crypto;''')
-        database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (7, "poloniex", "btc", "usd", "poloniexbtcusd"))
+        database.dbCursor.execute('''DELETE FROM crypto_cmc;''')
         database.dbConn.commit()
 
     async def gdax(self):
@@ -352,6 +367,7 @@ class UpdateCoins:
 
     async def poloniex(self):
         print("%s UPDATING POLOINEX TICKERS..." % __name__) 
+        database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (8, "poloniex", "btc", "usd", "poloniexbtcusd"))        
         ret = await common.getJSON('https://poloniex.com/public?command=returnCurrencies')
         if ret is not None:
             for ticker in ret:
@@ -408,6 +424,22 @@ class UpdateCoins:
             for ticker in ret['data']:
                 unique = "kucoin" + ticker['coinType'].lower() + ticker['coinTypePair'].lower().replace("usdt","usd")
                 database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (4, "kucoin", ticker['coinType'].lower(), ticker['coinTypePair'].lower().replace("usdt","usd"), unique))
+            database.dbConn.commit()
+            return True
+        else:
+            return None
+
+    async def coinmarketcap(self):
+        print("%s UPDATING COINMARKETCAP TICKERS AND LOOKUPS..." % __name__) 
+        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/?limit=500')
+        if ret is not None:
+            for ticker in ret:
+                #handle the normal !c / !mc lookups
+                unique = "coinmarketcap" + ticker['symbol'] + "btc"
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (999, "coinmarketcap", ticker['symbol'].lower(), "btc", unique))
+                
+                #handle !cmc lookups with the crypto_cmc table
+                database.dbCursor.execute('''INSERT OR IGNORE INTO crypto_cmc(ticker, id, name) VALUES(?,?,?)''', (ticker['symbol'], ticker['id'], ticker['name']))
             database.dbConn.commit()
             return True
         else:
