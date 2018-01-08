@@ -4,7 +4,9 @@ from . import config
 
 import asyncio
 import discord
+
 from discord.ext import commands
+from discord import embeds
 
 bot = commands.Bot(command_prefix='!', description='Bernard, for Discord. Made with love by ILiedAboutCake')
 

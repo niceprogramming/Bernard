@@ -6,6 +6,8 @@ from . import discord
 from . import analytics
 from . import database
 
+from datetime import datetime
+
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True, aliases=['cadm'])
 async def cryptoadmin(ctx):
     if common.isDiscordAdministrator(ctx.message.author) is not True:
@@ -118,6 +120,36 @@ async def multicrypto(ctx, coin: str, currency="usd"):
                 formatted += "**{0}**: {1} {2}\n\n".format(exch, pri, usdrough) 
     await discord.bot.say(formatted)
 
+@discord.bot.command(pass_context=True, aliases=['cmc'])
+async def coinmarketcap(ctx, coin: str):
+    await discord.bot.send_typing(ctx.message.channel)
+
+    c = Coin(coin, "btc")
+    cmc = await c.cmc_lookup()
+
+    if cmc is None:
+        await discord.bot.say("404: shitcoin lookup not found :(")
+        return
+
+    ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/'+cmc+'/')
+    cmc = ret[0]
+
+    emd = discord.embeds.Embed(title='Coin Market Cap data for: {0} "{1}"'.format(coin.upper(), cmc['symbol']), url="https://coinmarketcap.com/currencies/"+cmc['id']+"/", colour=0xE79015)
+    emd.set_thumbnail(url='https://files.coinmarketcap.com/static/img/coins/128x128/'+cmc['id']+'.png')
+    emd.add_field(name="Rank", value=cmc['rank'], inline=True)
+    emd.add_field(name="Market Cap", value="${:0,.2f}".format(float(cmc['market_cap_usd'])), inline=True)     
+    emd.add_field(name="Price (USD)", value="${:,.2f}".format(float(cmc['price_usd'])), inline=True)    
+    emd.add_field(name="Price (BTC)", value="{:.8f}".format(float(cmc['price_btc'])), inline=True)
+    emd.add_field(name="Available Supply", value="{:,}".format(float(cmc['available_supply'])), inline=True) 
+    try:
+        emd.add_field(name="Max Supply", value="{:,}".format(float(cmc['max_supply'])), inline=True)
+    except TypeError:
+        emd.add_field(name="Max Supply", value="∞", inline=True)
+    emd.add_field(name="Market Change (1H / 24H / 7D)", value="{}% / {}% / {}%".format(cmc['percent_change_1h'], cmc['percent_change_24h'], cmc['percent_change_7d']), inline=False) 
+    emd.set_footer(text="Last Updated: {} EST".format(datetime.fromtimestamp(int(cmc['last_updated'])).isoformat()))
+
+    await discord.bot.say(embed=emd)
+
 @discord.bot.command(pass_context=True, aliases=['cweb'])
 async def cryptoweb(ctx):
     await discord.bot.say("Track your favorite coins without shitting up the bot! https://polecat.me/crypto")
@@ -145,6 +177,15 @@ class Coin:
         else:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE exchange=? AND ticker=? AND currency=? ORDER BY priority ASC''', (self.exchange, self.ticker, self.currency))
             return database.dbCursor.fetchone()
+
+    async def cmc_lookup(self):
+        self.lazylookup()
+        database.dbCursor.execute('''SELECT * FROM crypto_cmc WHERE ticker=?''', (self.ticker.upper(),))
+        retdb = database.dbCursor.fetchone()
+        if retdb is None:
+            return None
+        else:
+            return retdb[1] #return ID
 
     async def force_fiat(self):
         if self.currency == "btc":
@@ -287,10 +328,8 @@ class TickerFetch(Coin):
             return None
 
     async def coinmarketcap(self):
-        database.dbCursor.execute('''SELECT * FROM crypto_cmc WHERE ticker=?''', (self.ticker.upper(),))
-        retdb = database.dbCursor.fetchone()
-
-        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/'+retdb[1]+'/')
+        cmc = await self.cmc_lookup()
+        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/'+cmc+'/')
 
         if ret is not None:
             self.valued = ret[0]['price_btc']
