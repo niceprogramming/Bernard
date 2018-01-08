@@ -134,7 +134,7 @@ async def coinmarketcap(ctx, coin: str):
     ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/'+cmc+'/')
     cmc = ret[0]
 
-    emd = discord.embeds.Embed(title='Coin Market Cap data for: {0} "{1}"'.format(coin.upper(), cmc['symbol']), url="https://coinmarketcap.com/currencies/"+cmc['id']+"/", colour=0xE79015)
+    emd = discord.embeds.Embed(title='Coin Market Cap data for: {0} "{1}"'.format(coin.upper(), cmc['name']), url="https://coinmarketcap.com/currencies/"+cmc['id']+"/", colour=0xE79015)
     emd.set_thumbnail(url='https://files.coinmarketcap.com/static/img/coins/128x128/'+cmc['id']+'.png')
     emd.add_field(name="Rank", value=cmc['rank'], inline=True)
     emd.add_field(name="Market Cap", value="${:0,.2f}".format(float(cmc['market_cap_usd'])), inline=True)     
