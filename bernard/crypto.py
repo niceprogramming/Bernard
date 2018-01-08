@@ -163,6 +163,8 @@ class Coin:
         self.ticker = ticker.lower()
         self.exchange = exchange
         self.currency = currency.lower()
+        self.value = 0
+        self.fiat_cache = None
 
     async def multiexchange(self):
         self.lazylookup()
@@ -188,16 +190,22 @@ class Coin:
             return retdb[1] #return ID
 
     async def force_fiat(self):
-        if self.currency == "btc":
-            ret = await common.getJSON('https://api.gdax.com/products/btc-usd/ticker')
-        elif self.currency == "eth":
-            ret = await common.getJSON('https://api.gdax.com/products/eth-usd/ticker')
-        else:
-            print("{0}: WARNING cannot force fiat price on currency when it's {1}".format(__name__, self.currency))
-            return None
+        if self.fiat_cache == None:
+            if self.currency == "btc":
+                ret = await common.getJSON('https://api.gdax.com/products/btc-usd/ticker')
+            elif self.currency == "eth":
+                ret = await common.getJSON('https://api.gdax.com/products/eth-usd/ticker')
+            else:
+                print("{0}: WARNING cannot force fiat price on currency when it's {1}".format(__name__, self.currency))
+                return None
 
-        form = (float(ret['price'])*float(self.valued))
-        return "~${:,.2f} USD".format(float(form))
+            self.fiat_cache = float(ret['price'])
+
+        if self.valued is None:
+            return "N/A"
+        else:
+            form = (self.fiat_cache*float(self.valued))
+            return "~${:,.2f} USD".format(float(form))
 
     async def getprice(self, lookup):
         if lookup[1] == "gdax":
@@ -273,8 +281,9 @@ class TickerFetch(Coin):
         ret = await common.getJSON('https://poloniex.com/public?command=returnTicker')
         if ret is not None:
             try:
-                self.valued = None #fuck poloinex
-                return self.format(ret[self.currency.upper().replace("USD","USDT")+"_"+self.ticker.upper()]['last'])
+                poloniex_api_sucks = ret[self.currency.upper().replace("USD","USDT")+"_"+self.ticker.upper()]['last']
+                self.valued = poloniex_api_sucks
+                return self.format(poloniex_api_sucks)
             except KeyError:
                 return None
         else:
@@ -311,7 +320,7 @@ class TickerFetch(Coin):
             return None
 
     async def kraken(self):
-        ret = await common.getJSON('https://api.kraken.com/0/public/Ticker?pair='+self.ticker.replace("btc","xbt")+self.currency)
+        ret = await common.getJSON('https://api.kraken.com/0/public/Ticker?pair='+self.ticker.replace("btc","xbt")+self.currency.replace("btc","xbt"))
         if ret is not None:
             for ticker, data in ret['result'].items():
                 self.valued = data['c'][0]

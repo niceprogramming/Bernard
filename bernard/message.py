@@ -13,8 +13,9 @@ async def on_message(message):
 	#only reply to the guild set in config file
 	try:
 		if common.isDiscordMainServer(message.server.id) is not True:
+			await discord.bot.process_commands(message)
 			return
-	except AttributeError:
+	except AttributeError: #process messages anyway
 		await discord.bot.process_commands(message)
 		return
 

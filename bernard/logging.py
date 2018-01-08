@@ -15,4 +15,4 @@ logging.basicConfig(level=logging.INFO)
 async def on_error(event, *args, **kwargs):
 	print(event)
 
-	await discord.bot.send_message(discord.objectFactory('283012703159844864'), event)
+	await discord.bot.send_message(discord.objectFactory('283012703159844864'), "{0} {1} {2}".format(event, args, kwargs))
