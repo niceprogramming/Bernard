@@ -28,6 +28,8 @@ async def on_message(message):
 
 	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0
 	await auditing.attachments(message) #message attachment auditing
+	
+	await auditing.discord_invites(message) #discord invites
 
 	#print the message to the console
 	print("{0}: Channel: {1.channel} User: {1.author} (ID:{1.author.id}) Message: {1.content}".format(__name__, message))
@@ -42,9 +44,3 @@ async def on_message(message):
 
 	#message processing timings
 	analytics.onMessageProcessTime(msgProcessStart, analytics.getEventTime())
-
-async def pubsub_publisher():
-	await discord.client.wait_until_ready()
-	pass
-
-	#discord.client
