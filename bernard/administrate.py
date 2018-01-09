@@ -10,6 +10,7 @@ from . import crypto
 import sys
 import os
 import subprocess
+import asyncio
 
 #very dangerous administration commands only plz #common.isDiscordBotOwner(ctx.message.author.id):
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True)
@@ -52,6 +53,21 @@ async def modules(ctx):
 			if "bernard" in k:
 				mods = mods + "\n" + k
 		await discord.bot.say("```{0}```".format(mods))
+
+#reload the config in place
+@admin.command(pass_context=True, no_pm=True, hidden=True)
+async def reloadcfg(ctx):
+    if common.isDiscordAdministrator(ctx.message.author):
+        if config.verify_config() is True:
+            await discord.bot.say("Config file check passed. Waiting 3 seconds and in-place reloading config.json.")
+            await asyncio.sleep(3)
+        else:
+            await discord.bot.say("Unable to reload config.json in place due to file check failure. Check console for more info.")
+            return
+
+        if config.reload_config() is True:
+            await discord.bot.say("Config reload in-place sucessfully! <:pepoChamp:359903320032280577>")
+
 
 #get the data for time spent message.on_message()
 @admin.command(pass_context=True, no_pm=True, hidden=True)
