@@ -1,7 +1,6 @@
 print("%s loading..." % __name__) 
 import sys
 import json
-import copy
 import os
 
 CONFIG_FILE = "config.json"

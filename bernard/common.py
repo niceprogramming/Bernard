@@ -87,7 +87,10 @@ async def getJSON(url, tmout=5):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=tmout) as r:
                 if r.status == 200:
-                    ret = await r.json()
+                    try:
+                        ret = await r.json()
+                    except:
+                       return None
                     return ret
                 else:
                     return None

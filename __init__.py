@@ -15,7 +15,7 @@ import bernard.crypto
 import bernard.message
 import bernard.auditing
 import bernard.purger
-#import bernard.memberstate
+import bernard.memberstate
 
 #import bernard.antispam
 

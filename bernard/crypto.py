@@ -125,7 +125,7 @@ async def coinmarketcap(ctx, coin: str):
     await discord.bot.send_typing(ctx.message.channel)
 
     c = Coin(coin, "btc")
-    cmc = await c.cmc_lookup()
+    cmc = c.cmc_lookup()
 
     if cmc is None:
         await discord.bot.say("404: shitcoin lookup not found :(")
@@ -180,7 +180,7 @@ class Coin:
             database.dbCursor.execute('''SELECT * FROM crypto WHERE exchange=? AND ticker=? AND currency=? ORDER BY priority ASC''', (self.exchange, self.ticker, self.currency))
             return database.dbCursor.fetchone()
 
-    async def cmc_lookup(self):
+    def cmc_lookup(self):
         self.lazylookup()
         database.dbCursor.execute('''SELECT * FROM crypto_cmc WHERE ticker=?''', (self.ticker.upper(),))
         retdb = database.dbCursor.fetchone()
@@ -236,6 +236,11 @@ class Coin:
         lazy = database.dbCursor.fetchone()
         if lazy is not None:
             self.ticker = lazy[0]
+        else:
+            database.dbCursor.execute('''SELECT * FROM crypto_cmc WHERE id=?''', (self.ticker,))
+            lazy_fallback = database.dbCursor.fetchone()
+            if lazy_fallback is not None:
+                self.ticker = lazy_fallback[0].lower()
 
     def format(self, raw):
         if raw is None:
@@ -337,7 +342,7 @@ class TickerFetch(Coin):
             return None
 
     async def coinmarketcap(self):
-        cmc = await self.cmc_lookup()
+        cmc = self.cmc_lookup()
         ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/'+cmc+'/')
 
         if ret is not None:
@@ -479,7 +484,7 @@ class UpdateCoins:
 
     async def coinmarketcap(self):
         print("%s UPDATING COINMARKETCAP TICKERS AND LOOKUPS..." % __name__) 
-        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/?limit=500')
+        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/?limit=1000')
         if ret is not None:
             for ticker in ret:
                 #handle the normal !c / !mc lookups
