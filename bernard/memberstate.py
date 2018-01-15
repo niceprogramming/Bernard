@@ -25,7 +25,7 @@ async def on_member_join(user):
         return
 
     ##send the message to the admin defined channel
-    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2}".format(common.bernardUTCTimeNow(), user, 	common.bernardAccountAgeToFriendly(user.created_at.timestamp())))
+    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2}".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user)))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
 
@@ -42,5 +42,28 @@ async def on_member_remove(user):
         return
 
     await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Departing User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
+
+    analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
+
+#member getting banned from the server. member = discord.Member
+@discord.bot.event
+async def on_member_ban(member):
+    msgProcessStart = analytics.getEventTime()
+    if common.isDiscordMainServer(member.server.id) is not True:
+        return
+
+    ignore_depart.append(member.id)
+    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Banned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), member))
+
+    analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
+
+#unban events server = discord.Server, user = discord.User
+@discord.bot.event
+async def on_member_unban(server, user): 
+    msgProcessStart = analytics.getEventTime()
+    if common.isDiscordMainServer(server.id) is not True:
+        return
+
+    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Unbanned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())

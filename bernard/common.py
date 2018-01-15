@@ -53,8 +53,8 @@ def bernardUTCTimeNow():
 def bernardTimeToEpoch(age):
 	return datetime.datetime(age).timestamp()
 
-def bernardAccountAgeToFriendly(epoch):
-	diff = time.time() - epoch
+def bernardAccountAgeToFriendly(user):
+	diff = int(datetime.datetime.utcnow().timestamp() - user.created_at.timestamp())
 
 	years, rem = divmod(diff, 31104000)
 	months, rem = divmod(rem, 2592000)
@@ -69,6 +69,9 @@ def bernardAccountAgeToFriendly(epoch):
 	mins = int(mins)
 	secs = int(secs)
 
+	print(diff)
+	print(years, months, days, hours, mins, secs)
+
 	if years >= 1:
 		return "{}Yr {}Mo {}Day".format(years, months, days)
 	elif months >= 1:
@@ -79,8 +82,6 @@ def bernardAccountAgeToFriendly(epoch):
 		return "{}Hr {}Min {}Sec".format(hours, mins, secs)
 	else:
 		return "{}Min {}Sec".format(mins, secs)
-
-	#return years, months, days, hours, mins, secs
 
 async def getJSON(url, tmout=5):
     try:
