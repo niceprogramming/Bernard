@@ -16,13 +16,13 @@ bernardGenesis = 0
 def onMessageProcessTime(start, end):
 	global onMessageProcessTimes
 	#pop the oldest in the array
-	if len(onMessageProcessTimes) >= 20:
+	if len(onMessageProcessTimes) >= 100:
 		onMessageProcessTimes.pop(0)
 	onMessageProcessTimes.append(round(end - start, 3))
 
 def onMemberProcessTime(start, end):
 	global onMemberProcessTimes
-	if len(onMemberProcessTimes) >= 20:
+	if len(onMemberProcessTimes) >= 100:
 		onMemberProcessTimes.pop(0)
 	onMemberProcessTimes.append(round(end - start, 3))
 

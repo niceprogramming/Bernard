@@ -70,3 +70,25 @@ async def on_member_unban(server, user):
     await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Unbanned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
+
+#user object changes. before/after = discord.Member
+@discord.bot.event
+async def on_member_update(before, after): 
+    msgProcessStart = analytics.getEventTime()
+    if common.isDiscordMainServer(before.server.id) is not True:
+        return
+
+    #handle nickname changes
+    if before.nick != after.nick:
+        if before.nick is None:
+            await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Server Nickname Added:** {1.mention} is now `{2.nick}` was `{1.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+        elif after.nick is None:
+            await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Server Nickname Removed:** {1.mention} is now `{1.name}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+        else:
+            await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Server Nickname Changed:** {1.mention} is now `{1.nick}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+
+    #handle username changes
+    if before.name != after.name:
+        await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Discord Username Changed:** {1.mention} is now `{1.name}` was `{2.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+
+    analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
