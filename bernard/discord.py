@@ -22,6 +22,9 @@ async def on_ready():
 
     bot.remove_command('help')
 
+@bot.event
+async def on_command_error(error, ctx):
+    logger.info("Uncaught command triggered: \"{0}\"".format(error))
 
 def objectFactory(snowflake):
-	return discord.Object(snowflake)
+    return discord.Object(snowflake)
