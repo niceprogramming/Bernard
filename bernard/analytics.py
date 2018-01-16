@@ -1,10 +1,12 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
 
 import time
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 onMessageProcessTimes = [] #def bernardMessageProcessTime(start, end):
 onMemberProcessTimes = [] #def analytics.onMemberProcessTime(start, end):

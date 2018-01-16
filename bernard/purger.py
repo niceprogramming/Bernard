@@ -1,11 +1,13 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
 from . import analytics
 
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 @discord.bot.command(pass_context=True, hidden=True)
 async def purgeuser(ctx, snowflake: str):
@@ -19,10 +21,10 @@ async def purgeuser(ctx, snowflake: str):
 
     for channel in ctx.message.server.channels:
         if channel.type == discord.discord.ChannelType.text:
-            print("{0} starting job on channel {1} for id {2}".format(__name__, channel, snowflake))
+            logger.info("starting job on channel {0} for id {1}".format(channel, snowflake))
             async for message in discord.bot.logs_from(channel, limit=500000):
                 if message.author.id == snowflake:
-                    print("{0} deleting message in {1} for id {2}".format(__name__, channel, snowflake))
+                    logger.debug("deleting message in {0} for id {1}".format(channel, snowflake))
                     counter += 1
                     await discord.bot.delete_message(message)
                     await asyncio.sleep(0.3)

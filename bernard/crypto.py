@@ -1,5 +1,3 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
@@ -7,6 +5,10 @@ from . import analytics
 from . import database
 
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True, aliases=['cadm'])
 async def cryptoadmin(ctx):
@@ -96,7 +98,7 @@ async def multicrypto(ctx, coin: str, currency="usd"):
         del c
         c = TickerFetch(coin, "btc")
         lookup = await c.multiexchange()
-        print("{0}: multicoin function falling back to BTC: Values {1}".format(__name__, len(lookup)))
+        logger.info("multicoin function falling back to BTC: Values {0}".format(len(lookup)))
 
     #nowhere to go but out
     if len(lookup) == 0:
@@ -196,7 +198,7 @@ class Coin:
             elif self.currency == "eth":
                 ret = await common.getJSON('https://api.gdax.com/products/eth-usd/ticker')
             else:
-                print("{0}: WARNING cannot force fiat price on currency when it's {1}".format(__name__, self.currency))
+                logger.warn("cannot force fiat price on currency when it's {0}".format(self.currency))
                 return None
 
             self.fiat_cache = float(ret['price'])
@@ -372,7 +374,7 @@ class UpdateCoins:
         database.dbConn.commit()
 
     async def gdax(self):
-        print("%s UPDATING GDAX TICKERS..." % __name__)
+        logger.info("UPDATING GDAX TICKERS...")
         ret = await common.getJSON('https://api.gdax.com/products')
         if ret is not None:
             for ticker in ret:
@@ -384,7 +386,7 @@ class UpdateCoins:
             return None
 
     async def gemini(self):
-        print("%s UPDATING GEMINI TICKERS..." % __name__) 
+        logger.info("UPDATING GEMINI TICKERS...")
         ret = await common.getJSON('https://api.gemini.com/v1/symbols')
         if ret is not None:
             for ticker in ret:
@@ -396,7 +398,7 @@ class UpdateCoins:
             return None
 
     async def bitfinex(self):
-        print("%s UPDATING BITFINEX TICKERS..." % __name__)
+        logger.info("UPDATING BITFINEX TICKERS...")
         ret = await common.getJSON('https://api.bitfinex.com/v1/symbols')
         if ret is not None:
             for ticker in ret:
@@ -408,7 +410,7 @@ class UpdateCoins:
             return None
 
     async def bittrex(self):
-        print("%s UPDATING BITTREX TICKERS..." % __name__)
+        logger.info("UPDATING BITTREX TICKERS...")
         ret = await common.getJSON('https://bittrex.com/api/v1.1/public/getmarkets')
         if ret is not None:
             for ticker in ret['result']:
@@ -419,7 +421,7 @@ class UpdateCoins:
             return None
 
     async def poloniex(self):
-        print("%s UPDATING POLOINEX TICKERS..." % __name__) 
+        logger.info("UPDATING POLOINEX TICKERS...") 
         database.dbCursor.execute('''INSERT OR IGNORE INTO crypto(priority, exchange, ticker, currency, uniq) VALUES(?,?,?,?,?)''', (8, "poloniex", "btc", "usd", "poloniexbtcusd"))        
         ret = await common.getJSON('https://poloniex.com/public?command=returnCurrencies')
         if ret is not None:
@@ -432,7 +434,7 @@ class UpdateCoins:
             return None
 
     async def bitstamp(self):
-        print("%s UPDATING BITSTAMP TICKERS..." % __name__) 
+        logger.info("UPDATING BITSTAMP TICKERS...") 
         ret = await common.getJSON('https://www.bitstamp.net/api/v2/trading-pairs-info/')
         if ret is not None:
             for ticker in ret:
@@ -445,7 +447,7 @@ class UpdateCoins:
             return None
 
     async def binance(self):
-        print("%s UPDATING BINANCE TICKERS..." % __name__) 
+        logger.info("UPDATING BINANCE TICKERS...") 
         ret = await common.getJSON('https://api.binance.com/api/v1/ticker/allPrices')
         if ret is not None:
             for ticker in ret:
@@ -458,7 +460,7 @@ class UpdateCoins:
             return None
 
     async def kraken(self):
-        print("%s UPDATING KRAKEN TICKERS..." % __name__) 
+        logger.info("UPDATING KRAKEN TICKERS...") 
         ret = await common.getJSON('https://api.kraken.com/0/public/AssetPairs')
         if ret is not None:
             for ticker, data in ret['result'].items():
@@ -471,7 +473,7 @@ class UpdateCoins:
             return None
 
     async def kucoin(self):
-        print("%s UPDATING KUCOIN TICKERS..." % __name__) 
+        logger.info("UPDATING KUCOIN TICKERS...")
         ret = await common.getJSON('https://api.kucoin.com/v1/market/open/symbols')
         if ret is not None:
             for ticker in ret['data']:
@@ -483,7 +485,7 @@ class UpdateCoins:
             return None
 
     async def coinmarketcap(self):
-        print("%s UPDATING COINMARKETCAP TICKERS AND LOOKUPS..." % __name__) 
+        logger.info("UPDATING CMC TICKERS AND LOOKUP TABLE...") 
         ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/?limit=1000')
         if ret is not None:
             for ticker in ret:

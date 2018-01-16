@@ -1,11 +1,13 @@
-print("%s loading..." % __name__) 
-
 from . import config
 
 import datetime
 import time
 import json
 import aiohttp
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 bernardStartTimeSets = 0
 
@@ -68,10 +70,7 @@ def bernardAccountAgeToFriendly(user):
 	hours = int(hours)
 	mins = int(mins)
 	secs = int(secs)
-
-	print(diff)
-	print(years, months, days, hours, mins, secs)
-
+	
 	if years >= 1:
 		return "{}Yr {}Mo {}Day".format(years, months, days)
 	elif months >= 1:
@@ -96,5 +95,5 @@ async def getJSON(url, tmout=5):
                 else:
                     return None
     except Exception as e:
-        print("{0} Exception: {1}".format(__name__, e))
+        logging.error("Exception async getJSON: {1}".format(e))
         return None

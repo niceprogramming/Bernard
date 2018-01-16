@@ -1,11 +1,14 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
 from . import database
 from . import auditing
 from . import analytics
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 @discord.bot.event
 async def on_message(message):
@@ -32,7 +35,7 @@ async def on_message(message):
 	await auditing.discord_invites(message) #discord invites
 
 	#print the message to the console
-	print("{0}: Channel: {1.channel} User: {1.author} (ID:{1.author.id}) Message: {1.content}".format(__name__, message))
+	#print("{0}: Channel: {1.channel} User: {1.author} (ID:{1.author.id}) Message: {1.content}".format(__name__, message))
 
 	#handle message processing per rate limit
 	if analytics.rateLimitAllowProcessing(message):

@@ -1,8 +1,11 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 #hello.py - for basic bot health check commands and simple condition checks is admin / is owner etc
 

@@ -1,5 +1,3 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
@@ -11,6 +9,10 @@ import sys
 import os
 import subprocess
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 #very dangerous administration commands only plz #common.isDiscordBotOwner(ctx.message.author.id):
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True)

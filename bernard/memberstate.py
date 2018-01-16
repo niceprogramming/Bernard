@@ -1,10 +1,13 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
 from . import analytics
 from . import database
+
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 ignore_depart = []
 

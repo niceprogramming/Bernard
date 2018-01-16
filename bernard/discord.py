@@ -1,21 +1,23 @@
-print("%s loading..." % __name__) 
-
 from . import config
 
 import asyncio
 import discord
+import logging
 
 from discord.ext import commands
 from discord import embeds
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 bot = commands.Bot(command_prefix='!', description='Bernard, for Discord. Made with love by ILiedAboutCake')
 
 @bot.event
 async def on_ready():
-    print('{0} Logged in as "{1.user.name} ID:{1.user.id}"'.format(__name__, bot))
+    logger.info('Logged in as "{0.user.name} ID:{0.user.id}"'.format(bot))
     await asyncio.sleep(5)
 
-    print('{0} Setting game status as in as "{1}"'.format(__name__, config.cfg['bernard']['gamestatus']))
+    logger.info('Setting game status as in as "{0}"'.format(config.cfg['bernard']['gamestatus']))
     await bot.change_presence(game=discord.Game(name=config.cfg['bernard']['gamestatus']))
 
     bot.remove_command('help')

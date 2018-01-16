@@ -1,10 +1,12 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
 
 import re
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 async def attachments(msg):
     if config.cfg['auditing']['attachments']['enable'] == 0:
@@ -23,7 +25,7 @@ async def attachments(msg):
             if ext in config.cfg['auditing']['attachments']['restricted']:
                 await discord.bot.delete_message(msg)
                 await discord.bot.send_message(msg.channel, "{0}, <:pepoG:352533294862172160> that file format is not allowed to be uploaded here. Filename: `{1}`".format(msg.author.mention, attachment['filename']))
-                print("{0}: INFO deleting uploaded file: {1}".format(__name__, attachment['filename']))
+                logger.warn("deleting uploaded file: {0}".format(attachment['filename']))
 
 async def discord_invites(msg):
     #enable the module or not
@@ -44,10 +46,10 @@ async def discord_invites(msg):
         if msg.author.top_role.is_everyone == True:
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "⚠️ {0} Members without a role are unable to post Discord invites.".format(msg.author.mention))
-            print("{0}: INFO deleted invite under reason: 'everyone role'".format(__name__))
+            logger.warn("deleted invite {0} under reason: 'everyone role'".format(matched_discord[0]))
     elif msg.author.top_role.id == config.cfg['auditing']['invites']['lowest_role_blocked']:
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "⚠️ {0} Your role does not meet the minimum requirements to post Discord invites.".format(msg.author.mention))
-            print("{0}: INFO deleted invite under reason: 'underpowered role'".format(__name__))
+            logger.warn("deleted invite {0} under reason: 'underpowered role'".format(matched_discord[0]))
     else:   
-        print("{0}: INFO allowing discord user to post invite link: {1}".format(__name__, matched_discord[0]))
+        logger.warn("allowing discord user to post invite link: {0}".format(matched_discord[0]))

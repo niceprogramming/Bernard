@@ -1,5 +1,3 @@
-print("%s loading..." % __name__) 
-
 from . import config
 from . import common
 from . import discord
@@ -9,13 +7,17 @@ from . import antispam
 
 from threading import Thread
 import time
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 def discordBot():
-    print("%s STARTING DISCORD BOT THREAD..." % __name__) 
+    logger.warn("STARTING DISCORD BOT THREAD...")
     discord.bot.run(config.cfg['discord']['token'])
 
 def antiSpamCalculator():
-    print("%s STARTING DISCORD ANTISPAM THREAD..." % __name__) 
+    logger.warn("STARTING DISCORD ANTISPAM THREAD...") 
     antispam.main()
 
 #def testBGThread():

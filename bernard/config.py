@@ -1,13 +1,16 @@
-print("%s loading..." % __name__) 
 import sys
 import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
+logger.info("loading...")
 
 CONFIG_FILE = "config.json"
 
 def verify_config():
     if os.path.isfile(CONFIG_FILE) is False:
-        print("{0}: FATAL: config.json does not exist in root folder.".format(__name__))        
+        logger.critical("config.json does not exist in root folder.")        
         return False
 
     with open(CONFIG_FILE, "r") as cfgRead:
@@ -15,7 +18,7 @@ def verify_config():
             json.load(cfgRead)
             return True
         except ValueError as e:
-            print("{0}: FATAL: config.json is not formatted properly {1}".format(__name__,e))
+            logger.critical("config.json is not formatted properly {0}".format(e))
             return False
 
 #load the json file as cfg, allows access as config.json. Stop on error.
@@ -24,10 +27,10 @@ def start_config():
     if verify_config():
         with open(CONFIG_FILE, "r") as cfgFile:
             cfg = json.load(cfgFile)
-            print("{0}: INFO: config.json loaded in bot genesis.".format(__name__))
+            logger.info("config.json loaded in bot genesis.")
             return True
     else:
-        print("{0}: FATAL: Unable to start bot. Unrecoverable error in loading genesis configuration file.".format(__name__))
+        logger.critical("Unable to start bot. Unrecoverable error in loading genesis configuration file.")
         sys.exit(0)
 
 def reload_config():
@@ -36,7 +39,7 @@ def reload_config():
         del cfg
         with open(CONFIG_FILE, "r") as cfgFile:
             cfg = json.load(cfgFile)
-            print("{0}: INFO: config.json reloaded in place.".format(__name__))
+            logger.info("config.json reloaded in place.")
             return True
 
 start_config()
