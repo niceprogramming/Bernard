@@ -21,6 +21,7 @@ import bernard.message
 import bernard.auditing
 import bernard.purger
 import bernard.memberstate
+import bernard.deleted
 
 #import bernard.antispam
 
