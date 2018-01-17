@@ -12,88 +12,87 @@ logger.info("loading...")
 bernardStartTimeSets = 0
 
 def isDiscordBotOwner(id):
-	return id == config.cfg['bernard']['owner']
+    return id == config.cfg['bernard']['owner']
 
 def isDiscordAdministrator(member):
-	if isDiscordBotOwner(member.id): return True
+    if isDiscordBotOwner(member.id): return True
 
-	for role in member.roles:
-		if role.id == config.cfg['bernard']['administrators']: return True
+    for role in member.roles:
+        if role.id == config.cfg['bernard']['administrators']: return True
 
 def datetimeObjectToString(timestamp):
-	return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
 def bernardStartTimeSet():
-	global bernardStartTimeSets
-	bernardStartTimeSets = time.time()
+    global bernardStartTimeSets
+    bernardStartTimeSets = time.time()
 
 def packageMessageToQueue(msg):
-	msgDict = {
-		"timestamp":datetimeObjectToString(msg.timestamp),
-		"content":msg.content,
-		"embeds":msg.embeds,
-		"attachments":msg.attachments,
-		"member": {
-			"joined":datetimeObjectToString(msg.author.joined_at),
-			"nick":msg.author.nick,
-			"author": str(msg.author),
-			"top_role":msg.author.top_role.id,
-			},
-		"scored":0,
-		"score":0
-	}
-	msgToQueue = json.dumps(msgDict)
-	return(msgToQueue)
+    msgDict = {
+        "timestamp":datetimeObjectToString(msg.timestamp),
+        "content":msg.content,
+        "embeds":msg.embeds,
+        "attachments":msg.attachments,
+        "member": {
+            "joined":datetimeObjectToString(msg.author.joined_at),
+            "nick":msg.author.nick,
+            "author": str(msg.author),
+            "top_role":msg.author.top_role.id,
+            },
+        "scored":0,
+        "score":0
+    }
+    msgToQueue = json.dumps(msgDict)
+    return(msgToQueue)
 
 def isDiscordMainServer(id):
-	if id == config.cfg['discord']['server']:
-		return True
+    if id == config.cfg['discord']['server']:
+        return True
 
 def bernardUTCTimeNow():
     return datetime.datetime.utcnow().strftime(config.cfg["bernard"]["timestamp"])
 
 def bernardTimeToEpoch(age):
-	return datetime.datetime(age).timestamp()
+    return datetime.datetime(age).timestamp()
 
 def bernardAccountAgeToFriendly(user):
-	diff = int(datetime.datetime.utcnow().timestamp() - user.created_at.timestamp())
+    diff = int(datetime.datetime.utcnow().timestamp() - user.created_at.timestamp())
 
-	years, rem = divmod(diff, 31104000)
-	months, rem = divmod(rem, 2592000)
-	days, rem = divmod(rem, 86400)
-	hours, rem = divmod(rem, 3600)
-	mins, secs = divmod(rem, 60)
+    years, rem = divmod(diff, 31104000)
+    months, rem = divmod(rem, 2592000)
+    days, rem = divmod(rem, 86400)
+    hours, rem = divmod(rem, 3600)
+    mins, secs = divmod(rem, 60)
+    
+    return "{:02d}:{:02d}:{:02d}:{:02d}:{:02d}:{:02d}".format(years, months, days, hours, mins, secs)
 
-	years = int(years)
-	months = int(months)
-	days = int(days)
-	hours = int(hours)
-	mins = int(mins)
-	secs = int(secs)
-	
-	if years >= 1:
-		return "{}Yr {}Mo {}Day".format(years, months, days)
-	elif months >= 1:
-		return "{}Mo {}Day {}Hr".format(months, days, hours)
-	elif days >= 1:
-		return "{}Day {}Hr {}Min".format(days, hours, mins)
-	elif hours >= 1:
-		return "{}Hr {}Min {}Sec".format(hours, mins, secs)
-	else:
-		return "{}Min {}Sec".format(mins, secs)
+    #if years >= 1:
+    #    return "{}Yr {}Mo {}Day".format(years, months, days)
+    #elif months >= 1:
+    #    return "{}Mo {}Day {}Hr".format(months, days, hours)
+    #elif days >= 1:
+    #    return "{}Day {}Hr {}Min".format(days, hours, mins)
+    #elif hours >= 1:
+    #    return "{}Hr {}Min {}Sec".format(hours, mins, secs)
+    #else:
+    #    return "{}Min {}Sec".format(mins, secs)
 
 async def getJSON(url, tmout=5):
+    logger.info("common.getJSON() attempting async URL {0} Timeout:{1}s".format(url, tmout))
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=tmout) as r:
+                logger.info("common.getJSON() returned HTTP/{}".format(r.status))
                 if r.status == 200:
-                    try:
+                    if "application/json" in r.headers['Content-Type']: 
                         ret = await r.json()
-                    except:
-                       return None
-                    return ret
+                        return ret
+                    else:
+                        logger.warn("common.getJSON() unable to get JSON from endpoint. Content-Type mismatched {}".format(r.headers['Content-Type']))
+                        return None
                 else:
+                    logger.warn("common.getJSON() unable to get JSON from endpoint. HTTP code not valid HTTP/{}".format(r.status))
                     return None
     except Exception as e:
-        logging.error("Exception async getJSON: {1}".format(e))
+        logging.error("common.getJSON() threw an excpetion: {0}".format(e))
         return None

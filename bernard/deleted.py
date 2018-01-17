@@ -1,6 +1,7 @@
 from . import config
 from . import common
 from . import discord
+from . import analytics
 
 import logging
 
