@@ -63,19 +63,8 @@ def bernardAccountAgeToFriendly(user):
     days, rem = divmod(rem, 86400)
     hours, rem = divmod(rem, 3600)
     mins, secs = divmod(rem, 60)
-    
-    return "{:02d}:{:02d}:{:02d}:{:02d}:{:02d}:{:02d}".format(years, months, days, hours, mins, secs)
 
-    #if years >= 1:
-    #    return "{}Yr {}Mo {}Day".format(years, months, days)
-    #elif months >= 1:
-    #    return "{}Mo {}Day {}Hr".format(months, days, hours)
-    #elif days >= 1:
-    #    return "{}Day {}Hr {}Min".format(days, hours, mins)
-    #elif hours >= 1:
-    #    return "{}Hr {}Min {}Sec".format(hours, mins, secs)
-    #else:
-    #    return "{}Min {}Sec".format(mins, secs)
+    return "{:02d}:{:02d}:{:02d}:{:02d}:{:02d}:{:02d}".format(years, months, days, hours, mins, secs)
 
 async def getJSON(url, tmout=5):
     logger.info("common.getJSON() attempting async URL {0} Timeout:{1}s".format(url, tmout))
