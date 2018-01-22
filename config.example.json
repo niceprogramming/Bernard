@@ -19,7 +19,8 @@
 		"channel":"273164941857652737",
 		"gamestatus":"Westworld",
 		"ratelimit":30,
-		"messagecache":10000,		
+		"messagecache":10000,
+		"debug":0,
 		"database":{
 			"sqlite":"bernard.db",
 			"redis":{

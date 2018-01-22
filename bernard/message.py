@@ -35,7 +35,8 @@ async def on_message(message):
 	await auditing.discord_invites(message) #discord invites
 
 	#print the message to the console
-	#print("{0}: Channel: {1.channel} User: {1.author} (ID:{1.author.id}) Message: {1.content}".format(__name__, message))
+	if config.cfg['bernard']['debug']:
+		logger.info("Channel: {0.channel} User: {0.author} (ID:{0.author.id}) Message: {0.content}".format(message))
 
 	#handle message processing per rate limit
 	if analytics.rateLimitAllowProcessing(message):

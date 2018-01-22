@@ -28,13 +28,18 @@ def bernardStartTimeSet():
     bernardStartTimeSets = time.time()
 
 def packageMessageToQueue(msg):
+    try:
+        joined_at = datetimeObjectToString(msg.author.joined_at)
+    except AttributeError:
+        joined_at = None
+
     msgDict = {
         "timestamp":datetimeObjectToString(msg.timestamp),
         "content":msg.content,
         "embeds":msg.embeds,
         "attachments":msg.attachments,
         "member": {
-            "joined":datetimeObjectToString(msg.author.joined_at),
+            "joined":joined_at,
             "nick":msg.author.nick,
             "author": str(msg.author),
             "top_role":msg.author.top_role.id,
