@@ -1,3 +1,4 @@
+from . import eventloop
 from . import config
 
 import asyncio
@@ -10,7 +11,7 @@ from discord import embeds
 logger = logging.getLogger(__name__)
 logger.info("loading...")
 
-bot = commands.Bot(command_prefix='!', max_messages=config.cfg['bernard']['messagecache'], description='Bernard, for Discord. Made with love by ILiedAboutCake')
+bot = commands.Bot(command_prefix='!', max_messages=config.cfg['bernard']['messagecache'], description='Bernard, for Discord. Made with love by ILiedAboutCake', loop=eventloop.evtloop)
 
 @bot.event
 async def on_ready():
