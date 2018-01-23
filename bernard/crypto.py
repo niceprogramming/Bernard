@@ -165,7 +165,7 @@ class Coin:
         self.ticker = ticker.lower()
         self.exchange = exchange
         self.currency = currency.lower()
-        self.value = 0
+        self.valued = None
         self.fiat_cache = None
 
     async def multiexchange(self):
@@ -319,7 +319,7 @@ class TickerFetch(Coin):
             return None
 
     async def binance(self):
-        ret = await common.getJSON('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.upper())
+        ret = await common.getJSON('https://api.binance.com/api/v1/ticker/24hr?symbol='+self.ticker.upper()+self.currency.replace("usd","usdt").upper())
         if ret is not None:
             self.valued = ret['bidPrice']
             return self.format(ret['bidPrice'])

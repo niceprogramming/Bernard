@@ -19,7 +19,7 @@ logger.info("loading...")
 async def admin(ctx):
     if common.isDiscordAdministrator(ctx.message.author):
         if ctx.invoked_subcommand is None:
-            await discord.bot.say('Invalid subcommand...')
+            await discord.bot.say('Invalid subcommand... ```run | git | host | modules | cfg | timings')
 
 #eval
 @admin.command(pass_context=True, no_pm=True, hidden=True)
@@ -44,7 +44,7 @@ async def git(ctx):
 @admin.command(pass_context=True, no_pm=True, hidden=True)
 async def host(ctx):
 	if common.isDiscordAdministrator(ctx.message.author):
-		await discord.bot.say("```Discord.py {0}, Python {1} ({2})```\n🐍🐍🐍🐍🐍".format(discord.discord.__version__, sys.version, sys.platform))
+		await discord.bot.say("```Discord.py {0}, Python {1} ({2})```".format(discord.discord.__version__, sys.version, sys.platform))
 
 #print what modules have been loaded for the bot
 @admin.command(pass_context=True, no_pm=True, hidden=True)
@@ -57,7 +57,7 @@ async def modules(ctx):
 		await discord.bot.say("```{0}```".format(mods))
 
 #reload the config in place
-@admin.command(pass_context=True, no_pm=True, hidden=True)
+@admin.command(pass_context=True, no_pm=True, hidden=True, aliases=['cfg', 'reloadconfig'])
 async def reloadcfg(ctx):
     if common.isDiscordAdministrator(ctx.message.author):
         if config.verify_config() is True:
