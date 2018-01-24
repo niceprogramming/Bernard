@@ -71,11 +71,11 @@ def bernardAccountAgeToFriendly(user):
 
     return "{:02d}:{:02d}:{:02d}:{:02d}:{:02d}:{:02d}".format(years, months, days, hours, mins, secs)
 
-async def getJSON(url, tmout=5):
+async def getJSON(url, tmout=5, hdrs=None):
     logger.info("common.getJSON() attempting async URL {0} Timeout:{1}s".format(url, tmout))
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=tmout) as r:
+            async with session.get(url, timeout=tmout, headers=hdrs) as r:
                 logger.info("common.getJSON() returned HTTP/{}".format(r.status))
                 if r.status == 200:
                     if "application/json" in r.headers['Content-Type']: 

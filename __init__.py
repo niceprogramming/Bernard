@@ -24,6 +24,7 @@ import bernard.auditing
 import bernard.purger
 import bernard.memberstate
 import bernard.deleted
+import bernard.invites
 
 logger.warn("STARTING DISCORD BOT...")
 bernard.discord.bot.run(bernard.config.cfg['discord']['token'])

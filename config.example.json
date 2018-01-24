@@ -2,7 +2,8 @@
 	"discord":{
 		"token":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 		"endpoint":"https://discordapp.com/api",
-		"server":"265256381437706240"
+		"server":"265256381437706240",
+		"timestamp_format":"%Y-%m-%dT%H:%M:%S.%f+00:00"		
 	},
 
 	"dgg":{
@@ -43,12 +44,11 @@
 		"age":30
 	},
 
-	"purgeInvites":{
+	"invite_cleanup":{
 		"enable":1,
-		"interval":21600,
-		"timestamp":"%%Y-%%m-%%dT%%H:%%M:%%S.%%f+00:00",
-		"minage":5,
-		"minuse":5
+		"interval":1200,
+		"lifetime":3,
+		"ignore_if_used_times":5
 	},
 
 	"auditing":{

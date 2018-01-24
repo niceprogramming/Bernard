@@ -3,6 +3,7 @@ from . import common
 from . import discord
 from . import analytics
 from . import database
+from . import invites
 
 import logging
 
@@ -46,6 +47,9 @@ async def on_member_remove(user):
 
     await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Departing User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
 
+    #remove any invites from this user
+    await invites.on_member_leave_invite_cleanup(user)
+
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
 
 #member getting banned from the server. member = discord.Member
@@ -57,6 +61,9 @@ async def on_member_ban(member):
 
     ignore_depart.append(member.id)
     await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Banned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), member))
+
+    #remove any invites from this user
+    await invites.on_member_leave_invite_cleanup(member)
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
 

@@ -30,3 +30,6 @@ if config.cfg['bernard']['debug']:
 
 def objectFactory(snowflake):
     return discord.Object(snowflake)
+
+def mod_channel():
+    return discord.Object(config.cfg['bernard']['channel'])
