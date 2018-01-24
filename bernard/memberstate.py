@@ -25,11 +25,11 @@ async def on_member_join(user):
     if retdb is not None:
         ignore_depart.append(user.id)
         await discord.bot.ban(user)
-        await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Retroactive Ban:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}` REASON: `{2}`)".format(common.bernardUTCTimeNow(), user, retdb[2]))
+        await discord.bot.send_message(discord.mod_channel(),"{0} **Retroactive Ban:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}` REASON: `{2}`)".format(common.bernardUTCTimeNow(), user, retdb[2]))
         return
 
     ##send the message to the admin defined channel
-    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2}".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user)))
+    await discord.bot.send_message(discord.mod_channel(),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2}".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user)))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
 
@@ -45,7 +45,7 @@ async def on_member_remove(user):
         ignore_depart.remove(user.id)
         return
 
-    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Departing User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
+    await discord.bot.send_message(discord.mod_channel(),"{0} **Departing User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
 
     #remove any invites from this user
     await invites.on_member_leave_invite_cleanup(user)
@@ -60,7 +60,7 @@ async def on_member_ban(member):
         return
 
     ignore_depart.append(member.id)
-    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Banned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), member))
+    await discord.bot.send_message(discord.mod_channel(),"{0} **Banned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), member))
 
     #remove any invites from this user
     await invites.on_member_leave_invite_cleanup(member)
@@ -74,7 +74,7 @@ async def on_member_unban(server, user):
     if common.isDiscordMainServer(server.id) is not True:
         return
 
-    await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Unbanned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
+    await discord.bot.send_message(discord.mod_channel(),"{0} **Unbanned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
 
@@ -88,14 +88,14 @@ async def on_member_update(before, after):
     #handle nickname changes
     if before.nick != after.nick:
         if before.nick is None:
-            await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Server Nickname Added:** {1.mention} is now `{2.nick}` was `{1.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Added:** {1.mention} is now `{1.name}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
         elif after.nick is None:
-            await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Server Nickname Removed:** {1.mention} is now `{1.name}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Removed:** {1.mention} is now `{1.name}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
         else:
-            await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Server Nickname Changed:** {1.mention} is now `{1.nick}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Changed:** {1.mention} is now `{1.nick}` was `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
 
     #handle username changes
     if before.name != after.name:
-        await discord.bot.send_message(discord.objectFactory(config.cfg['bernard']['channel']),"{0} **Discord Username Changed:** {1.mention} is now `{1.name}` was `{2.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
+        await discord.bot.send_message(discord.mod_channel(),"{0} **Discord Username Changed:** {1.mention} is now `{1.name}` was `{2.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), after, before))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
