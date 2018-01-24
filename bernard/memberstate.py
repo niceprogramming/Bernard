@@ -36,6 +36,7 @@ async def on_member_join(user):
 #member leaving the server. user = discord.User
 @discord.bot.event
 async def on_member_remove(user):
+    global ignore_depart
     msgProcessStart = analytics.getEventTime()
     if common.isDiscordMainServer(user.server.id) is not True:
         return

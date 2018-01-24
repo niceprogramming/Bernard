@@ -38,10 +38,10 @@
 		"cache":3600
 	},
 
-	"purgeUsers":{
+	"purge_inactive_users":{
 		"enable":1,
 		"interval":21600,
-		"age":30
+		"inactive_days":30
 	},
 
 	"invite_cleanup":{
@@ -60,10 +60,6 @@
 			"enable":1,
 			"lowest_role_blocked":"everyone"
 		}
-	},
-
-	"botScheduler":{
-		"enable":0
 	},
 
 	"flair":{
