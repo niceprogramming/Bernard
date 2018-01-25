@@ -59,6 +59,9 @@
 		"invites":{
 			"enable":1,
 			"lowest_role_blocked":"everyone"
+		},
+		"blacklisted_domains":{
+			"enable":1
 		}
 	},
 

@@ -98,7 +98,7 @@ async def blacklisted_domains(msg):
             logger.warn("blacklisted_domains() user kick from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "🛑 {0.author.mention} that domain `{1[0]}` is prohibited here with the policy to kick poster. Kicking...".format(msg, dbres))
-            await discord.bot.kick(message.author)
+            await discord.bot.kick(msg.author)
             return
         elif dbres[1] == "ban":
             logger.warn("blacklisted_domains() user ban from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
