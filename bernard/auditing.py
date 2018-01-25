@@ -1,9 +1,11 @@
 from . import config
 from . import common
 from . import discord
+from . import database
 
 import re
 import logging
+import tldextract
 
 logger = logging.getLogger(__name__)
 logger.info("loading...")
@@ -53,3 +55,56 @@ async def discord_invites(msg):
             logger.warn("deleted invite {0} under reason: 'underpowered role'".format(matched_discord[0]))
     else:   
         logger.warn("allowing discord user to post invite link: {0}".format(matched_discord[0]))
+
+#CREATE TABLE `auditing_blacklisted_domains` ( `domain` TEXT UNIQUE, `action` TEXT, `added_by` TEXT, `added_when` INTEGER, `hits` INTEGER DEFAULT 0 )
+async def blacklisted_domains(msg):
+    if config.cfg['auditing']['blacklisted_domains']['enable'] == 0:
+        return
+
+    if common.isDiscordAdministrator(msg.author) is True:
+        return
+
+    #matched regex into URLs list 
+    full_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', msg.content)
+    if len(full_urls) == 0:
+        return
+
+    for url in full_urls:
+        #extract the url into only what we care about https://github.com/john-kurkowski/tldextract
+        tldext = tldextract.extract(url)
+        domain = "{0.domain}.{0.suffix}".format(tldext)
+
+        #lookup the tld in the db
+        database.dbCursor.execute('SELECT * FROM auditing_blacklisted_domains WHERE domain=?', (domain.lower(),))
+        dbres = database.dbCursor.fetchone()
+
+        #if we dont find the domain just move along
+        if dbres == None:
+            continue
+
+        #up the hit counter in the DB
+        database.dbCursor.execute('UPDATE auditing_blacklisted_domains SET hits=? WHERE domain=?', (dbres[4]+1,domain))
+        database.dbConn.commit()
+        
+        #if we found a domain lets act on it | methods audit / delete / kick / ban
+        if dbres[1] == "audit":
+            logger.warn("Domain audit of user {0.author} blacklisted_domains() domain {1[0]} found".format(msg, dbres))
+        elif dbres[1] == "delete":
+            logger.warn("blacklisted_domains() message delete from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
+            await discord.bot.delete_message(msg)
+            await discord.bot.send_message(msg.channel, "⚠️ {0.author.mention} that domain `{1[0]}` is prohibited here.".format(msg, dbres))
+            return
+        elif dbres[1] == "kick":
+            logger.warn("blacklisted_domains() user kick from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
+            await discord.bot.delete_message(msg)
+            await discord.bot.send_message(msg.channel, "🛑 {0.author.mention} that domain `{1[0]}` is prohibited here with the policy to kick poster. Kicking...".format(msg, dbres))
+            await discord.bot.kick(message.author)
+            return
+        elif dbres[1] == "ban":
+            logger.warn("blacklisted_domains() user ban from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
+            await discord.bot.delete_message(msg)
+            await discord.bot.send_message(msg.channel, "🛑 {0.author.mention} that domain `{1[0]}` is prohibited here with the policy to **BAN** poster. Banning...".format(msg, dbres))
+            await discord.bot.ban(msg.author, delete_message_days=0)
+            return
+        else:
+            logger.error("Unknown action attempted in blacklisted_domains() while handling a blacklisted domain {0[1]} method {0[0]}".format(dbres))

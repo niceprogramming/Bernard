@@ -22,25 +22,26 @@ async def on_message(message):
 		await discord.bot.process_commands(message)
 		return
 
-
 	#package the message as a json object, add to a redis DB and set it to expire to anti-spam calculations
-	database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
-	database.rds.expire(message.channel.id +":"+ message.id, 360)
+	#database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
+	#database.rds.expire(message.channel.id +":"+ message.id, 360)
 
-	database.rds.publish("AntiSpam", common.packageMessageToQueue(message))
+	#database.rds.publish("AntiSpam", common.packageMessageToQueue(message))
 
-	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0
-	await auditing.attachments(message) #message attachment auditing
-	
-	await auditing.discord_invites(message) #discord invites
+	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0 DO NOT AUDIT OURSELVES BAD THINGS HAPPEN
+	if message.author.id != discord.bot.user.id:
+		await auditing.attachments(message) #message attachment auditing
+		await auditing.discord_invites(message) #discord invites
+		await auditing.blacklisted_domains(message) #url blacklisting
 
 	#print the message to the console
 	if config.cfg['bernard']['debug']:
 		logger.info("Channel: {0.channel} User: {0.author} (ID:{0.author.id}) Message: {0.content}".format(message))
 
-	#handle message processing per rate limit
+	#handle message processing per rate limit, do not reply to ourselves
 	if analytics.rateLimitAllowProcessing(message):
-		await discord.bot.process_commands(message)
+		if message.author.id != discord.bot.user.id:
+			await discord.bot.process_commands(message)
 
 	#set the rate limit
 	if message.author.id == discord.bot.user.id:
