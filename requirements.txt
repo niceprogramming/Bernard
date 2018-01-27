@@ -1,1 +1,3 @@
 tldextract
+tabulate
+numpy

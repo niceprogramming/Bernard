@@ -22,6 +22,9 @@ async def on_message(message):
 		await discord.bot.process_commands(message)
 		return
 
+	#get some basic stats of message sending
+	analytics.setMessageCounter(message)
+
 	#package the message as a json object, add to a redis DB and set it to expire to anti-spam calculations
 	#database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
 	#database.rds.expire(message.channel.id +":"+ message.id, 360)

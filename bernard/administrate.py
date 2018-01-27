@@ -5,60 +5,94 @@ from . import database
 from . import analytics
 from . import crypto
 
+from tabulate import tabulate
+
 import sys
 import os
 import subprocess
 import asyncio
 import logging
 import datetime
+import platform
 
 logger = logging.getLogger(__name__)
 logger.info("loading...")
 
 #very dangerous administration commands only plz #common.isDiscordBotOwner(ctx.message.author.id):
-@discord.bot.group(pass_context=True, no_pm=True, hidden=True)
+@discord.bot.group(pass_context=True, hidden=True)
 async def admin(ctx):
     if common.isDiscordAdministrator(ctx.message.author):
         if ctx.invoked_subcommand is None:
-            await discord.bot.say('Invalid subcommand... ```run | git | host | modules | cfg | timings | domainblacklist')
+            await discord.bot.say('Invalid subcommand... ```run | sql | system | modules | cfg | stats | blacklist```')
 
 #eval
-@admin.command(pass_context=True, no_pm=True, hidden=True)
+@admin.command(pass_context=True, hidden=True)
 async def run(ctx, *, msg: str):
     if common.isDiscordBotOwner(ctx.message.author.id):
+        emd = discord.embeds.Embed(color=0xE79015)
         try:
             evalData = eval(msg.replace('`',''))
-            await discord.bot.say("```{0}```".format(evalData))
         except Exception as e:
-            await discord.bot.say("```{0}```".format(e))
+            evalData = e
+        emd.add_field(name="Result", value=evalData)
+        await discord.bot.say(embed=emd)
 
-#get git revision
-@admin.command(pass_context=True, no_pm=True, hidden=True)
-async def git(ctx):
-	if common.isDiscordAdministrator(ctx.message.author):
-		gitcommit = subprocess.check_output(['git','rev-parse','--short','HEAD']).decode(encoding='UTF-8').rstrip()
-		gitbranch = subprocess.check_output(['git','rev-parse','--abbrev-ref','HEAD']).decode(encoding='UTF-8').rstrip()
-		gitremote = subprocess.check_output(['git','config','--get','remote.origin.url']).decode(encoding='UTF-8').rstrip()
-		await discord.bot.say("```Commit {0}, Branch {1}, Remote {2}```".format(gitcommit, gitbranch, gitremote))
+#sql cmd, another stupidly dangerous command
+@admin.command(pass_context=True, hidden=True)
+async def sql(ctx, *, sql: str):
+    if common.isDiscordBotOwner(ctx.message.author.id):
+        try:
+            database.dbCursor.execute(sql) #dont ever do this anywhere else VERY bad and will fuck your day up
+        except Exception as e:
+            await discord.bot.say("```{}```".format(e))
+            return
+
+        dbres = database.dbCursor.fetchall()
+        if dbres is None:
+            await discord.bot.say("```DB returned None.```")
+            return
+
+        #we have to get the column names then make a list of them. Then convert the list to a tuple and add it to the front of the db list. Wow.
+        column_names = []
+        for tb in database.dbCursor.description:
+            column_names.append(tb[0])
+        dbres.insert(0,tuple(column_names))
+
+        #https://pypi.python.org/pypi/tabulate
+        await discord.bot.say("```{0}```".format(tabulate(dbres, headers="firstrow")))
+
 
 #get python version and discordpy version
-@admin.command(pass_context=True, no_pm=True, hidden=True)
-async def host(ctx):
-	if common.isDiscordAdministrator(ctx.message.author):
-		await discord.bot.say("```Discord.py {0}, Python {1} ({2})```".format(discord.discord.__version__, sys.version, sys.platform))
+@admin.command(pass_context=True, hidden=True)
+async def system(ctx):
+    if common.isDiscordAdministrator(ctx.message.author):
+        load = os.times()
+        gitcommit = subprocess.check_output(['git','rev-parse','--short','HEAD']).decode(encoding='UTF-8').rstrip()
+        gitbranch = subprocess.check_output(['git','rev-parse','--abbrev-ref','HEAD']).decode(encoding='UTF-8').rstrip()
+        gitremote = subprocess.check_output(['git','config','--get','remote.origin.url']).decode(encoding='UTF-8').rstrip().replace(".git","")
+
+        emd = discord.embeds.Embed(color=0xE79015)
+        emd.add_field(name="Discord.py Version", value=discord.discord.__version__)
+        emd.add_field(name="Python Version", value=platform.python_build()[0])
+        emd.add_field(name="Host", value="{} ({}) [{}] hostname '{}'".format(platform.system(), platform.platform(), sys.platform, platform.node()))
+        emd.add_field(name="Process", value="PID: {} User: {:.2f}% System: {:.2f}%".format(os.getpid(), load[0]*10, load[1]*10))
+        emd.add_field(name="Git Revision", value="`{}@{}` Remote: {}".format(gitcommit.upper(), gitbranch.title(), gitremote))
+        await discord.bot.say(embed=emd)
 
 #print what modules have been loaded for the bot
-@admin.command(pass_context=True, no_pm=True, hidden=True)
+@admin.command(pass_context=True, hidden=True)
 async def modules(ctx):
-	if common.isDiscordAdministrator(ctx.message.author):
-		mods = ""
-		for k in sys.modules.keys():
-			if "bernard" in k:
-				mods = mods + "\n" + k
-		await discord.bot.say("```{0}```".format(mods))
+    if common.isDiscordAdministrator(ctx.message.author):
+        mods = ""
+        for k in sys.modules.keys():
+            if "bernard" in k:
+                mods = mods + "\n" + k
+        emd = discord.embeds.Embed(color=0xE79015)
+        emd.add_field(name="Loaded Modules", value=mods)
+        await discord.bot.say(embed=emd)
 
 #reload the config in place
-@admin.command(pass_context=True, no_pm=True, hidden=True, aliases=['cfg', 'reloadconfig'])
+@admin.command(pass_context=True, hidden=True, aliases=['cfg', 'reloadconfig'])
 async def reloadcfg(ctx):
     if common.isDiscordAdministrator(ctx.message.author):
         if config.verify_config() is True:
@@ -73,20 +107,19 @@ async def reloadcfg(ctx):
 
 
 #get the data for time spent message.on_message()
-@admin.command(pass_context=True, no_pm=True, hidden=True)
-async def timings(ctx):
-	if common.isDiscordAdministrator(ctx.message.author):
-		#get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months
-		onMessageTimeAvg = round(sum(analytics.onMessageProcessTimes) / len(analytics.onMessageProcessTimes), 3)
-		try:
-			onMemberTimeAvg = round(sum(analytics.onMemberProcessTimes) / len(analytics.onMemberProcessTimes), 3)
-		except ZeroDivisionError:
-			onMemberTimeAvg = 0
-		await discord.bot.say("```on_message() Avg: {0}s, Longest: {1}s Shortest: {2}s```".format(onMessageTimeAvg, max(analytics.onMessageProcessTimes), min(analytics.onMessageProcessTimes)))
-
+@admin.command(pass_context=True, hidden=True)
+async def stats(ctx):
+    if common.isDiscordAdministrator(ctx.message.author):
+        #get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months <-- haha I did exactly this check git
+        emd = discord.embeds.Embed(color=0xE79015)
+        emd.add_field(name="Bot Uptime", value=analytics.getRuntime())
+        emd.add_field(name="Messages Processed", value="{:,d}".format(analytics.messages_processed))
+        emd.add_field(name="on_message() Statistics", value=analytics.get_onMessageProcessTime())
+        emd.add_field(name="on_member() Statistics", value=analytics.get_onMemberProcessTime())
+        await discord.bot.say(embed=emd)
 
 #handle auditing_blacklist_domains control
-@admin.command(pass_context=True, no_pm=True, hidden=True)
+@admin.command(pass_context=True, hidden=True)
 async def blacklist(ctx, command: str, domain: str, policy="delete"):
     if common.isDiscordAdministrator(ctx.message.author) is False:
         return
