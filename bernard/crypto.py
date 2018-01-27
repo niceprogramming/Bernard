@@ -6,9 +6,27 @@ from . import database
 
 from datetime import datetime
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 logger.info("loading...")
+
+#background job to update coins automatically as set in config.cfg
+async def sync_background():
+    await discord.bot.wait_until_ready()
+    while not discord.bot.is_closed:
+        logger.info("Starting background task sync_background() - Interval {0}".format(config.cfg['chat']['crypto']['background_update_interval']))
+        update = UpdateCoins()
+        await update.update()
+        result = await update.count()
+        if update.oldtickers != update.newtickers:
+            await discord.bot.send_message(discord.objectFactory(config.cfg['chat']['crypto']['channel']), result)
+
+        logger.info("Sleeping background task sync_background() - Interval {0}".format(config.cfg['chat']['crypto']['background_update_interval']))
+        await asyncio.sleep(config.cfg['chat']['crypto']['background_update_interval'])
+
+if config.cfg['chat']['crypto']['background_update_enable']:
+    discord.bot.loop.create_task(sync_background())
 
 @discord.bot.group(pass_context=True, no_pm=True, hidden=True, aliases=['cadm'])
 async def cryptoadmin(ctx):
@@ -43,15 +61,11 @@ async def sync(ctx):
 
     await discord.bot.send_typing(ctx.message.channel)
 
-    database.dbCursor.execute('''SELECT count(*) FROM crypto''')
-    old = database.dbCursor.fetchone()
+    updater = UpdateCoins()
+    await updater.update()
+    result = await updater.count()
 
-    await UpdateCoins().update()
-
-    database.dbCursor.execute('''SELECT count(*) FROM crypto''')
-    new = database.dbCursor.fetchone()
-
-    await discord.bot.say("Fetched new tickers from providers. {0} new trade pairs added <:pepoWant:352533805438992395>".format(new[0] - old[0]))
+    await discord.bot.say(result)
 
 @discord.bot.command(pass_context=True, aliases=['c'])
 async def crypto(ctx, coin: str, currency="usd", exchange=None):
@@ -354,6 +368,10 @@ class TickerFetch(Coin):
             return None
 
 class UpdateCoins:
+    def __init__(self):
+        self.oldtickers = 0
+        self.newtickers = 0
+
     async def update(self):
         await self.flush()
 
@@ -369,9 +387,23 @@ class UpdateCoins:
         await self.coinmarketcap()
 
     async def flush(self):
+        #get how many objects were in DB
+        database.dbCursor.execute('''SELECT count(*) FROM crypto''')
+        old = database.dbCursor.fetchone()
+        self.oldtickers = old[0]
+
         database.dbCursor.execute('''DELETE FROM crypto;''')
         database.dbCursor.execute('''DELETE FROM crypto_cmc;''')
         database.dbConn.commit()
+
+    async def count(self):
+        database.dbCursor.execute('''SELECT count(*) FROM crypto''')
+        new = database.dbCursor.fetchone()
+        self.newtickers = new[0]
+
+        change = self.newtickers - self.oldtickers
+
+        return "<:pepoWant:352533805438992395> Database updated! Change: {0:,d}. ({1:,d} lookup attempts available)".format(change, self.newtickers)
 
     async def gdax(self):
         logger.info("UPDATING GDAX TICKERS...")
@@ -486,7 +518,7 @@ class UpdateCoins:
 
     async def coinmarketcap(self):
         logger.info("UPDATING CMC TICKERS AND LOOKUP TABLE...") 
-        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/?limit=1000')
+        ret = await common.getJSON('https://api.coinmarketcap.com/v1/ticker/?limit='+str(config.cfg['chat']['crypto']['cmc_limit']))
         if ret is not None:
             for ticker in ret:
                 #handle the normal !c / !mc lookups

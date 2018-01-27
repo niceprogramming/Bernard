@@ -65,6 +65,15 @@
 		}
 	},
 
+	"chat":{
+		"crypto":{
+			"channel":"382400958434377728",
+			"cmc_limit":1100,
+			"background_update_interval":10800,
+			"background_update_enable":1
+		}
+	},
+
 	"flair":{
 		"flairs":["flair13", "flair1", "flair3", "flair8"],
 		"twitch":{
