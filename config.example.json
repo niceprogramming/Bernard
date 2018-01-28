@@ -23,12 +23,7 @@
 		"messagecache":10000,
 		"debug":0,
 		"database":{
-			"sqlite":"bernard.db",
-			"redis":{
-				"host":"172.16.5.251", 
-				"port":6379, 
-				"db":2
-			}
+			"sqlite":"bernard.db"
 		}
 	},
 

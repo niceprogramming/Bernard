@@ -25,12 +25,6 @@ async def on_message(message):
 	#get some basic stats of message sending
 	analytics.setMessageCounter(message)
 
-	#package the message as a json object, add to a redis DB and set it to expire to anti-spam calculations
-	#database.rds.set(message.channel.id +":"+ message.id, common.packageMessageToQueue(message))
-	#database.rds.expire(message.channel.id +":"+ message.id, 360)
-
-	#database.rds.publish("AntiSpam", common.packageMessageToQueue(message))
-
 	#handoff the message to a function dedicated to its feature see also https://www.youtube.com/watch?v=ekP0LQEsUh0 DO NOT AUDIT OURSELVES BAD THINGS HAPPEN
 	if message.author.id != discord.bot.user.id:
 		await auditing.attachments(message) #message attachment auditing
