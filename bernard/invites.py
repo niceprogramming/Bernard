@@ -33,6 +33,7 @@ async def invite_cleanup():
         logger.info("Starting background task invite_cleanup() - Interval {0}".format(config.cfg['invite_cleanup']['interval']))
         invites = await get_all_invites()
         utc_epoch = datetime.datetime.utcnow().timestamp()
+        invites_removed = 0
         for invite in invites:
             #ignore invites that already have a death
             if invite['max_age'] != 0:
@@ -56,9 +57,10 @@ async def invite_cleanup():
             logger.warn("Removing invite {0[code]} for stale/inactivity reasons from {0[inviter][username]} ({0[inviter][id]}) {1} days old / {0[uses]} uses".format(invite, time_alive))
             await discord.bot.send_message(discord.mod_channel(), " {0} **Pruned Invite:** `{1[code]}` **From:** <@{1[inviter][id]}> (ID: `{1[inviter][id]}`) **Uses:** `{1[uses]}` **Age:** `{2}` days old".format(common.bernardUTCTimeNow(), invite, time_alive))
             await discord.bot.delete_invite(invite['code'])
+            invites_removed = invites_removed+1
             await asyncio.sleep(3)
 
-        journal.update_journal_job(module=__name__, job="invite_cleanup", time=time.time(), start=job_start, result="OK")
+        journal.update_journal_job(module=__name__, job="invite_cleanup", start=job_start, result="{} deleted".format(invites_removed))
         logger.info("Sleeping background task invite_cleanup() - Interval {0}".format(config.cfg['invite_cleanup']['interval']))
         await asyncio.sleep(config.cfg['invite_cleanup']['interval'])
 

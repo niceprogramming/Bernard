@@ -27,6 +27,7 @@ async def attachments(msg):
             if ext in config.cfg['auditing']['attachments']['restricted']:
                 await discord.bot.delete_message(msg)
                 await discord.bot.send_message(msg.channel, "{0}, <:pepoG:352533294862172160> that file format is not allowed to be uploaded here. Filename: `{1}`".format(msg.author.mention, attachment['filename']))
+                journal.update_journal_event(module=__name__, event="AUDIT_DELETE_ATTACHMENT", userid=msg.author.id, eventid=msg.id, contents=attachment['filename'])
                 logger.warn("deleting uploaded file: {0}".format(attachment['filename']))
 
 async def discord_invites(msg):
@@ -49,10 +50,12 @@ async def discord_invites(msg):
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "⚠️ {0} Members without a role are unable to post Discord invites.".format(msg.author.mention))
             logger.warn("deleted invite {0} under reason: 'everyone role'".format(matched_discord[0]))
+            journal.update_journal_event(module=__name__, event="AUDIT_DELETE_INVITE", userid=msg.author.id, eventid=msg.id, contents=matched_discord[0])
     elif msg.author.top_role.id == config.cfg['auditing']['invites']['lowest_role_blocked']:
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "⚠️ {0} Your role does not meet the minimum requirements to post Discord invites.".format(msg.author.mention))
             logger.warn("deleted invite {0} under reason: 'underpowered role'".format(matched_discord[0]))
+            journal.update_journal_event(module=__name__, event="AUDIT_DELETE_INVITE", userid=msg.author.id, eventid=msg.id, contents=matched_discord[0])
     else:   
         logger.warn("allowing discord user to post invite link: {0}".format(matched_discord[0]))
 
@@ -93,18 +96,21 @@ async def blacklisted_domains(msg):
             logger.warn("blacklisted_domains() message delete from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "⚠️ {0.author.mention} that domain `{1[0]}` is prohibited here.".format(msg, dbres))
+            journal.update_journal_event(module=__name__, event="AUDIT_DOMAIN_DELETE", userid=msg.author.id, eventid=msg.id, contents=dbres[0])
             return
         elif dbres[1] == "kick":
             logger.warn("blacklisted_domains() user kick from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "🛑 {0.author.mention} that domain `{1[0]}` is prohibited here with the policy to kick poster. Kicking...".format(msg, dbres))
             await discord.bot.kick(msg.author)
+            journal.update_journal_event(module=__name__, event="AUDIT_DOMAIN_KICK", userid=msg.author.id, eventid=msg.id, contents=dbres[0])
             return
         elif dbres[1] == "ban":
             logger.warn("blacklisted_domains() user ban from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
             await discord.bot.delete_message(msg)
             await discord.bot.send_message(msg.channel, "🛑 {0.author.mention} that domain `{1[0]}` is prohibited here with the policy to **BAN** poster. Banning...".format(msg, dbres))
             await discord.bot.ban(msg.author, delete_message_days=0)
+            journal.update_journal_event(module=__name__, event="AUDIT_DOMAIN_BAN", userid=msg.author.id, eventid=msg.id, contents=dbres[0])            
             return
         else:
             logger.error("Unknown action attempted in blacklisted_domains() while handling a blacklisted domain {0[1]} method {0[0]}".format(dbres))

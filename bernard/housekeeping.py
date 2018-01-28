@@ -27,7 +27,7 @@ async def purge_inactive_users():
             await discord.bot.send_message(discord.mod_channel(), "{0} **Pruned Inactive Users:** {1} users removed for inactivity of {2} days".format(common.bernardUTCTimeNow(), pruned, config.cfg['purge_inactive_users']['inactive_days']))
 
         logger.info("Sleeping background task purge_inactive_users() - Interval {0}".format(config.cfg['purge_inactive_users']['interval']))
-        journal.update_journal_job(module=__name__, job="purge_inactive_users", time=time.time(), start=job_start, result=est)
+        journal.update_journal_job(module=__name__, job="purge_inactive_users", start=job_start, result=est)
         await asyncio.sleep(config.cfg['purge_inactive_users']['interval'])
 
 if config.cfg['purge_inactive_users']['enable']:

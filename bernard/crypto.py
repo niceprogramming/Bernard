@@ -24,7 +24,7 @@ async def sync_background():
         if update.oldtickers != update.newtickers:
             await discord.bot.send_message(discord.objectFactory(config.cfg['chat']['crypto']['channel']), result)
 
-        journal.update_journal_job(module=__name__, job="sync_background", time=analytics.getEventTime(), start=job_start, result=result)
+        journal.update_journal_job(module=__name__, job="sync_background", start=job_start, result="{0} change".format(update.oldtickers - update.newtickers))
         logger.info("Sleeping background task sync_background() - Interval {0}".format(config.cfg['chat']['crypto']['background_update_interval']))
         await asyncio.sleep(config.cfg['chat']['crypto']['background_update_interval'])
 
