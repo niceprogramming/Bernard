@@ -1,6 +1,8 @@
 from . import config
 from . import common
 from . import discord
+from . import analytics
+from . import journal
 
 import asyncio
 import datetime
@@ -27,6 +29,7 @@ async def on_member_leave_invite_cleanup(member):
 async def invite_cleanup():
     await discord.bot.wait_until_ready()
     while not discord.bot.is_closed:
+        job_start = analytics.getEventTime()
         logger.info("Starting background task invite_cleanup() - Interval {0}".format(config.cfg['invite_cleanup']['interval']))
         invites = await get_all_invites()
         utc_epoch = datetime.datetime.utcnow().timestamp()
@@ -55,6 +58,7 @@ async def invite_cleanup():
             await discord.bot.delete_invite(invite['code'])
             await asyncio.sleep(3)
 
+        journal.update_journal_job(module=__name__, job="invite_cleanup", time=time.time(), start=job_start, result="OK")
         logger.info("Sleeping background task invite_cleanup() - Interval {0}".format(config.cfg['invite_cleanup']['interval']))
         await asyncio.sleep(config.cfg['invite_cleanup']['interval'])
 

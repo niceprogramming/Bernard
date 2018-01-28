@@ -12,6 +12,7 @@ import bernard.common
 import bernard.discord
 import bernard.database
 import bernard.analytics
+import bernard.journal
 
 #chat modules
 import bernard.hello

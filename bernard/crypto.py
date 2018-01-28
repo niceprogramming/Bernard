@@ -3,6 +3,7 @@ from . import common
 from . import discord
 from . import analytics
 from . import database
+from . import journal
 
 from datetime import datetime
 import logging
@@ -15,6 +16,7 @@ logger.info("loading...")
 async def sync_background():
     await discord.bot.wait_until_ready()
     while not discord.bot.is_closed:
+        job_start = analytics.getEventTime()
         logger.info("Starting background task sync_background() - Interval {0}".format(config.cfg['chat']['crypto']['background_update_interval']))
         update = UpdateCoins()
         await update.update()
@@ -22,6 +24,7 @@ async def sync_background():
         if update.oldtickers != update.newtickers:
             await discord.bot.send_message(discord.objectFactory(config.cfg['chat']['crypto']['channel']), result)
 
+        journal.update_journal_job(module=__name__, job="sync_background", time=analytics.getEventTime(), start=job_start, result=result)
         logger.info("Sleeping background task sync_background() - Interval {0}".format(config.cfg['chat']['crypto']['background_update_interval']))
         await asyncio.sleep(config.cfg['chat']['crypto']['background_update_interval'])
 
