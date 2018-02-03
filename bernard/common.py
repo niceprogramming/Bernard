@@ -20,6 +20,8 @@ def isDiscordAdministrator(member):
     for role in member.roles:
         if role.id == config.cfg['bernard']['administrators']: return True
 
+    return False
+
 def datetimeObjectToString(timestamp):
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
 

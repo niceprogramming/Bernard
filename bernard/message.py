@@ -4,6 +4,7 @@ from . import discord
 from . import database
 from . import auditing
 from . import analytics
+from . import antispam
 
 import logging
 
@@ -21,6 +22,10 @@ async def on_message(message):
 	except AttributeError: #process messages anyway
 		await discord.bot.process_commands(message)
 		return
+
+	#scan the message for spammy content
+	antispam_obj = antispam.antispam_auditor(message)
+	antispam_obj.score()
 
 	#get some basic stats of message sending
 	analytics.setMessageCounter(message)

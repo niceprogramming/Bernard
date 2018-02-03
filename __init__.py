@@ -27,6 +27,7 @@ import bernard.memberstate
 import bernard.deleted
 import bernard.invites
 import bernard.housekeeping
+import bernard.antispam
 
 logger.warn("STARTING DISCORD BOT...")
 bernard.discord.bot.run(bernard.config.cfg['discord']['token'])

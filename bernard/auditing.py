@@ -2,6 +2,7 @@ from . import config
 from . import common
 from . import discord
 from . import database
+from . import journal
 
 import re
 import logging
