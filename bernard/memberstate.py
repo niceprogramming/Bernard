@@ -20,6 +20,9 @@ async def on_member_join(user):
     if common.isDiscordMainServer(user.server.id) is not True:
         return
 
+    #the user got here somehow, get the discord.Invite object we *think* they came from
+    invite = await invites.on_member_join_attempt_invite_source(user)
+
     #if the user is retroactively banned, handle it and issue the ban
     database.dbCursor.execute('''SELECT * FROM bans_retroactive WHERE id=?''', (user.id,))
     retdb = database.dbCursor.fetchone()
@@ -31,7 +34,7 @@ async def on_member_join(user):
         return
 
     ##send the message to the admin defined channel
-    await discord.bot.send_message(discord.mod_channel(),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2}".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user)))
+    await discord.bot.send_message(discord.mod_channel(),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2} **Frpm:** `{3}`".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user), invite))
 
     #capture the event in the internal log
     journal.update_journal_event(module=__name__, event="ON_MEMBER_JOIN", userid=user.id, contents="{0.name}#{0.discriminator}".format(user))
@@ -103,18 +106,18 @@ async def on_member_update(before, after):
     #handle nickname changes
     if before.nick != after.nick:
         if before.nick is None:
-            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Added:** {1.mention} was `{1.name}` is now `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
+            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Added:** {1.mention} was `{1.name}` is now `{2.nick}` (ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
             journal.update_journal_event(module=__name__, event="ON_MEMBER_NICKNAME_ADD", userid=after.id, contents="{0.name} -> {1.nick}".format(before, after))
         elif after.nick is None:
-            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Removed:** {1.mention} was `{1.nick}` is now `{2.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
+            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Removed:** {1.mention} was `{1.nick}` is now `{2.name}` (ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
             journal.update_journal_event(module=__name__, event="ON_MEMBER_NICKNAME_REMOVE", userid=after.id, contents="{0.nick} -> {1.name}".format(before, after))
         else:
-            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Changed:** {1.mention} was `{1.nick}` is now `{2.nick}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
+            await discord.bot.send_message(discord.mod_channel(),"{0} **Server Nickname Changed:** {1.mention} was `{1.nick}` is now `{2.nick}` (ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
             journal.update_journal_event(module=__name__, event="ON_MEMBER_NICKNAME_CHANGE", userid=after.id, contents="{0.nick} -> {1.nick}".format(before, after))
 
     #handle username changes
     if before.name != after.name:
-        await discord.bot.send_message(discord.mod_channel(),"{0} **Discord Username Changed:** {1.mention} was `{1.name}` is now `{2.name}` (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
+        await discord.bot.send_message(discord.mod_channel(),"{0} **Discord Username Changed:** {1.mention} was `{1.name}` is now `{2.name}` (ID:`{1.id}`)".format(common.bernardUTCTimeNow(), before, after))
         journal.update_journal_event(module=__name__, event="ON_USERNAME_CHANGE", userid=after.id, contents="{0.name} -> {1.name}".format(before, after))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
