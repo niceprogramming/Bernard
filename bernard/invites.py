@@ -22,6 +22,7 @@ async def on_member_leave_invite_cleanup(member):
     for invite in invites:
         if invite['inviter']['id'] == member.id:
             logger.warn("Removing invite {0[code]} due to departure from {0[inviter][username]} ({0[inviter][id]}) / {0[uses]} uses".format(invite))
+            journal.update_journal_event(module=__name__, event="ON_MEMBER_LEAVE_INVITE_CLEANUP", userid=member.author.id, eventid=member.id, contents="invite:{0[code]} uses:{0[uses]}".format(invite))
             await discord.bot.send_message(discord.mod_channel(), " {0} **Removed Invite:** `{1[code]}` **From:** <@{1[inviter][id]}> (ID: `{1[inviter][id]}`) **Uses:** `{1[uses]}`".format(common.bernardUTCTimeNow(), invite))
             await discord.bot.delete_invite(invite['code'])
             await asyncio.sleep(3)
@@ -55,6 +56,7 @@ async def invite_cleanup():
 
             #if we made it this far, I got bad news invite :/
             logger.warn("Removing invite {0[code]} for stale/inactivity reasons from {0[inviter][username]} ({0[inviter][id]}) {1} days old / {0[uses]} uses".format(invite, time_alive))
+            journal.update_journal_event(module=__name__, event="BACKGROUND_INVITE_CLEANUP", userid=invite['inviter']['username'], eventid=invite['inviter']['id'], contents="invite:{0[code]} uses:{0[uses]}".format(invite))
             await discord.bot.send_message(discord.mod_channel(), " {0} **Pruned Invite:** `{1[code]}` **From:** <@{1[inviter][id]}> (ID: `{1[inviter][id]}`) **Uses:** `{1[uses]}` **Age:** `{2}` days old".format(common.bernardUTCTimeNow(), invite, time_alive))
             await discord.bot.delete_invite(invite['code'])
             invites_removed = invites_removed+1

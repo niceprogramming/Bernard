@@ -25,7 +25,7 @@ class antispam_auditor:
         self.find_ateveryone()
         self.count_words()
 
-        logger.info("{0} {1} {2} {3} {4} {5} {6} {7} {8}".format(self.user_mentions, self.user_mentions_unique, self.bayesian_score, self.user_mentions, self.user_mentions_unique, self.emotes, self.emotes_unique, self.wordcount, self.wordunique))
+        #logger.info("{0} {1} {2} {3} {4} {5} {6} {7} {8}".format(self.user_mentions, self.user_mentions_unique, self.bayesian_score, self.user_mentions, self.user_mentions_unique, self.emotes, self.emotes_unique, self.wordcount, self.wordunique))
 
         #database.dbCursor.execute('''INSERT INTO antispam_rawvalues(url_count, url_count_unique, bayesian_score, user_mentions, user_mentions_unique, emote_count) VALUES(?,?,?,?)''', (ticker.lower(), alias.lower(), analytics.getEventTime(), ctx.message.author.name))
 
