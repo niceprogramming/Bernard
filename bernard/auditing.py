@@ -92,7 +92,7 @@ async def blacklisted_domains(msg):
         
         #if we found a domain lets act on it | methods audit / delete / kick / ban
         if dbres[1] == "audit":
-            logger.warn("Domain audit of user {0.author} blacklisted_domains() domain {1[0]} found".format(msg, dbres))
+            logger.info("Domain audit of user {0.author} blacklisted_domains() domain {1[0]} found".format(msg, dbres))
         elif dbres[1] == "delete":
             logger.warn("blacklisted_domains() message delete from domain {0[0]} for user {1.author} ({1.author.id})".format(dbres, msg))
             await discord.bot.delete_message(msg)

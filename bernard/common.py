@@ -29,29 +29,6 @@ def bernardStartTimeSet():
     global bernardStartTimeSets
     bernardStartTimeSets = time.time()
 
-def packageMessageToQueue(msg):
-    try:
-        joined_at = datetimeObjectToString(msg.author.joined_at)
-    except AttributeError:
-        joined_at = None
-
-    msgDict = {
-        "timestamp":datetimeObjectToString(msg.timestamp),
-        "content":msg.content,
-        "embeds":msg.embeds,
-        "attachments":msg.attachments,
-        "member": {
-            "joined":joined_at,
-            "nick":msg.author.nick,
-            "author": str(msg.author),
-            "top_role":msg.author.top_role.id,
-            },
-        "scored":0,
-        "score":0
-    }
-    msgToQueue = json.dumps(msgDict)
-    return(msgToQueue)
-
 def isDiscordMainServer(id):
     if id == config.cfg['discord']['server']:
         return True
@@ -90,5 +67,5 @@ async def getJSON(url, tmout=5, hdrs=None):
                     logger.warn("common.getJSON() unable to get JSON from endpoint. HTTP code not valid HTTP/{}".format(r.status))
                     return None
     except Exception as e:
-        logging.error("common.getJSON() threw an excpetion: {0}".format(e))
+        logger.error("common.getJSON() threw an exception: {0}".format(e))
         return None

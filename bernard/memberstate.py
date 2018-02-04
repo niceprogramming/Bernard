@@ -34,7 +34,7 @@ async def on_member_join(user):
         return
 
     ##send the message to the admin defined channel
-    await discord.bot.send_message(discord.mod_channel(),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2} **Frpm:** `{3}`".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user), invite))
+    await discord.bot.send_message(discord.mod_channel(),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2} **From:** `{3}`".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user), invite))
 
     #capture the event in the internal log
     journal.update_journal_event(module=__name__, event="ON_MEMBER_JOIN", userid=user.id, contents="{0.name}#{0.discriminator}".format(user))

@@ -43,7 +43,9 @@
 		"enable":1,
 		"interval":1200,
 		"lifetime":3,
-		"ignore_if_used_times":5
+		"ignore_if_used_times":5,
+		"cache_enable":1,
+		"cache_interval":30
 	},
 
 	"auditing":{
