@@ -29,5 +29,8 @@ import bernard.invites
 import bernard.housekeeping
 import bernard.antispam
 
+#entitlement modules
+import bernard.subscriber
+
 logger.warn("STARTING DISCORD BOT...")
 bernard.discord.bot.run(bernard.config.cfg['discord']['token'])

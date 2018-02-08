@@ -5,6 +5,7 @@ from . import analytics
 from . import database
 from . import invites
 from . import journal
+from . import subscriber
 
 import logging
 
@@ -15,7 +16,7 @@ ignore_depart = []
 
 #new member to the server. user = discord.User
 @discord.bot.event
-async def on_member_join(user): 
+async def on_member_join(user):
     msgProcessStart = analytics.getEventTime()
     if common.isDiscordMainServer(user.server.id) is not True:
         return
@@ -59,6 +60,9 @@ async def on_member_remove(user):
     #remove any invites from this user
     await invites.on_member_leave_invite_cleanup(user)
 
+    #remove any cached subscriber information
+    subscriber.on_member_remove_purgedb(user)
+
     #capture the event in the internal log
     journal.update_journal_event(module=__name__, event="ON_MEMBER_REMOVE", userid=user.id, contents="{0.name}#{0.discriminator}".format(user))
 
@@ -76,6 +80,9 @@ async def on_member_ban(member):
 
     #remove any invites from this user
     await invites.on_member_leave_invite_cleanup(member)
+
+    #remove any cached subscriber information
+    subscriber.on_member_remove_purgedb(member)    
 
     #capture the event in the internal log
     journal.update_journal_event(module=__name__, event="ON_MEMBER_BANNED", userid=member.id, contents="{0.name}#{0.discriminator}".format(member))

@@ -2,3 +2,6 @@ __pycache__
 config.json
 bernard.db
 bernard/tools/
+bernard3.sublime-project
+bernard3.sublime-workspace
+sublime3.sublime-workspace
