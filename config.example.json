@@ -6,12 +6,6 @@
 		"timestamp_format":"%Y-%m-%dT%H:%M:%S.%f+00:00"		
 	},
 
-	"dgg":{
-		"endpoint":"https://www.destiny.gg/auth/info",
-		"privatekey":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"timestamp":"%%Y-%%m-%%dT%%H:%%M:%%S+0000"
-	},
-
 	"bernard":{
 		"whitelist":["142313171028410368", "265255911012958208", "221480025025675265", "252869311545212928", "192025697777221634"],
 		"owner":"252869311545212928",
@@ -25,12 +19,6 @@
 		"database":{
 			"sqlite":"bernard.db"
 		}
-	},
-
-	"connectSubscribers":{
-		"enable":1,
-		"interval":1200,
-		"cache":3600
 	},
 
 	"purge_inactive_users":{
@@ -71,39 +59,47 @@
 		}
 	},
 
-	"flair":{
-		"flairs":["flair13", "flair1", "flair3", "flair8"],
-		"twitch":{
-			"flair":"flair9",
-			"role":"265257374355292170"
+	"subscriber":{
+		"provider":{
+			"endpoint":"https://www.destiny.gg/auth/info",
+			"privatekey":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+			"timestamp":"%%Y-%%m-%%dT%%H:%%M:%%S+0000"
 		},
-		"t1":{
-			"flair":"flair13",
-			"role":"270249389933592577"
+		"settings":{
+			"grace_days":1
 		},
-		"t2":{
-			"flair":"flair1",
-			"role":"270249212682305537"
+		"updater_background":{
+			"enable":1,
+			"start_deplay":3600,
+			"interval":86400
 		},
-		"t3":{
-			"flair":"flair3",
-			"role":"270249123465134081"
+		"auditor_background":{
+			"enable":1,
+			"start_delay":90000,
+			"interval":86400
 		},
-		"t4":{
-			"flair":"flair8",
-			"role":"270248951511253002"
+		"database_background":{
+			"enable":1,
+			"start_delay":7200,
+			"interval":43200
 		},
-		"vip":{
-			"flair":"vip",
-			"role":"270288291918512138"
-		},
-		"adminstrator":{
-			"flair":"flair12",
-			"role":"270091163686535179"
-		},
-		"notable":{
-			"flair":"CHANGEME",
-			"role":"294108471710711818"
+		"features":{
+			"tier1":{
+				"provided":"flair13",
+				"roleid":"270249389933592577"
+			},
+			"tier2":{
+				"provided":"flair1",
+				"roleid":"270249212682305537"
+			},
+			"tier3":{
+				"provided":"flair3",
+				"roleid":"270249123465134081"
+			},
+			"tier4":{
+				"provided":"flair8",
+				"roleid":"270248951511253002"
+			}
 		}
 	}
 }
