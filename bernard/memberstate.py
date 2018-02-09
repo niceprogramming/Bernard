@@ -98,10 +98,20 @@ async def on_member_unban(server, user):
 
     await discord.bot.send_message(discord.mod_channel(),"{0} **Unbanned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
 
+    #check if the user was retroactively rebanned, if they were remove from said list.
+    database.dbCursor.execute('SELECT * FROM bans_retroactive WHERE id=?', (user.id,))
+    retdb = database.dbCursor.fetchone()
+    if retdb is not None:
+        database.dbCursor.execute('DELETE FROM bans_retroactive WHERE id=?', (user.id,))
+        database.dbConn.commit()
+        await discord.bot.send_message(discord.mod_channel(),"{0} **Retroactive Unban:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
+        journal.update_journal_event(module=__name__, event="RETROACTIVE_UNBAN", userid=user.id, contents=retdb[2])
+
     #capture the event in the internal log
     journal.update_journal_event(module=__name__, event="ON_MEMBER_UNBAN", userid=user.id, contents="{0.name}#{0.discriminator}".format(user))
 
     analytics.onMemberProcessTime(msgProcessStart, analytics.getEventTime())
+
 
 #user object changes. before/after = discord.Member
 @discord.bot.event
