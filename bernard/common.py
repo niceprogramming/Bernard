@@ -17,8 +17,11 @@ def isDiscordBotOwner(id):
 def isDiscordAdministrator(member):
     if isDiscordBotOwner(member.id): return True
 
-    for role in member.roles:
-        if role.id == config.cfg['bernard']['administrators']: return True
+    try:
+        for role in member.roles:
+            if role.id == config.cfg['bernard']['administrators']: return True
+    except AttributeError:
+        return False
 
     return False
 
@@ -29,8 +32,11 @@ def bernardStartTimeSet():
     global bernardStartTimeSets
     bernardStartTimeSets = time.time()
 
-def isDiscordMainServer(id):
-    if id == config.cfg['discord']['server']:
+def isDiscordMainServer(server):
+    if server is None:
+        return False
+        
+    if server.id == config.cfg['discord']['server']:
         return True
 
 def bernardUTCTimeNow():

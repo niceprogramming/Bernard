@@ -71,7 +71,7 @@ async def invite_cleanup():
                 continue
 
             #if its lifetime has met, but users are keeping it alive
-            if invite['uses'] > config.cfg['invite_cleanup']['ignore_if_used_times']:
+            if invite.uses > config.cfg['invite_cleanup']['ignore_if_used_times']:
                 continue
 
             #if we made it this far, I got bad news invite :/

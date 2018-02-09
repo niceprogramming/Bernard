@@ -65,7 +65,7 @@ async def subaudit(ctx, check=None):
 class subscriber_update:
     def __init__(self, user):
         self.user = user
-        self.today = int(time.strftime('%j', time.time()))
+        self.today = int(time.strftime('%j', time.gmtime(time.time())))
 
     async def get_provider_data(self):
         self.provider_data = await common.getJSON(config.cfg['subscriber']['provider']['endpoint']+"/?privatekey="+config.cfg['subscriber']['provider']['privatekey']+"&discordid="+self.user.id)
@@ -220,9 +220,9 @@ def on_member_remove_purgedb(user):
     if existing is not None:
         database.dbCursor.execute('DELETE FROM subscribers WHERE userid=?', (user.id,))
         database.dbConn.commit()
-        logger.info("{0.name} {0.id} leaving server with a subscription. Removing DB lookup.".format(self.user))
+        logger.info("{0.name} {0.id} leaving server with a subscription. Removing DB lookup.".format(user))
     else:
-        logger.info("{0.name} {0.id} leaving server without a Subscrption. Nothing to do.".format(self.user))
+        logger.info("{0.name} {0.id} leaving server without a Subscrption. Nothing to do.".format(user))
 
 def subscriber_feature_roles():
     logger.info("Building list of subscriber role IDs via subscriber_feature_roles()")
@@ -234,8 +234,8 @@ def subscriber_feature_roles():
 async def updater_background():
     await discord.bot.wait_until_ready()
     if discord.bot_jobs_ready == False:
-        logger.info('updater_background is ready to run, but has a timed hodl of {} seconds until first go.'.format(config.cfg['subscriber']['updater_background']['interval']))
-        await asyncio.sleep(config.cfg['subscriber']['updater_background']['interval'])
+        logger.info('updater_background is ready to run, but has a timed hodl of {} seconds until first go.'.format(config.cfg['subscriber']['updater_background']['start_delay']))
+        await asyncio.sleep(config.cfg['subscriber']['updater_background']['start_delay'])
 
     while not discord.bot.is_closed:
         job_start = analytics.getEventTime()
@@ -265,8 +265,8 @@ async def updater_background():
 async def auditor_background():
     await discord.bot.wait_until_ready()
     if discord.bot_jobs_ready == False:
-        logger.info('auditor_background is ready to run, but has a timed hodl of {} seconds until first go.'.format(config.cfg['subscriber']['auditor_background']['interval']))
-        await asyncio.sleep(config.cfg['subscriber']['auditor_background']['interval'])
+        logger.info('auditor_background is ready to run, but has a timed hodl of {} seconds until first go.'.format(config.cfg['subscriber']['auditor_background']['start_delay']))
+        await asyncio.sleep(config.cfg['subscriber']['auditor_background']['start_delay'])
 
     while not discord.bot.is_closed:
         job_start = analytics.getEventTime()
@@ -286,8 +286,8 @@ async def auditor_background():
 async def database_background():
     await discord.bot.wait_until_ready()
     if discord.bot_jobs_ready == False:
-        logger.info('database_background is ready to run, but has a timed hodl of {} seconds until first go.'.format(config.cfg['subscriber']['database_background']['interval']))
-        await asyncio.sleep(config.cfg['subscriber']['database_background']['interval'])
+        logger.info('database_background is ready to run, but has a timed hodl of {} seconds until first go.'.format(config.cfg['subscriber']['database_background']['start_delay']))
+        await asyncio.sleep(config.cfg['subscriber']['database_background']['start_delay'])
 
     while not discord.bot.is_closed:
         job_start = analytics.getEventTime()

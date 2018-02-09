@@ -70,7 +70,7 @@
 		},
 		"updater_background":{
 			"enable":1,
-			"start_deplay":3600,
+			"start_delay":3600,
 			"interval":86400
 		},
 		"auditor_background":{

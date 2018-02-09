@@ -13,7 +13,7 @@ logger.info("loading...")
 @discord.bot.event
 async def on_message_delete(message): 
     msgProcessStart = analytics.getEventTime()
-    if common.isDiscordMainServer(message.server.id) is not True:
+    if common.isDiscordMainServer(message.server) is not True:
         return
 
     if message.attachments and message.content == "":

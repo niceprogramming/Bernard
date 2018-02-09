@@ -18,7 +18,7 @@ ignore_depart = []
 @discord.bot.event
 async def on_member_join(user):
     msgProcessStart = analytics.getEventTime()
-    if common.isDiscordMainServer(user.server.id) is not True:
+    if common.isDiscordMainServer(user.server) is not True:
         return
 
     #the user got here somehow, get the discord.Invite object we *think* they came from
@@ -47,7 +47,7 @@ async def on_member_join(user):
 async def on_member_remove(user):
     global ignore_depart
     msgProcessStart = analytics.getEventTime()
-    if common.isDiscordMainServer(user.server.id) is not True:
+    if common.isDiscordMainServer(user.server) is not True:
         return
  
     #if the user was banned or removed for another reason dont issue the depart statement
@@ -72,7 +72,7 @@ async def on_member_remove(user):
 @discord.bot.event
 async def on_member_ban(member):
     msgProcessStart = analytics.getEventTime()
-    if common.isDiscordMainServer(member.server.id) is not True:
+    if common.isDiscordMainServer(member.server) is not True:
         return
 
     ignore_depart.append(member.id)
@@ -93,7 +93,7 @@ async def on_member_ban(member):
 @discord.bot.event
 async def on_member_unban(server, user): 
     msgProcessStart = analytics.getEventTime()
-    if common.isDiscordMainServer(server.id) is not True:
+    if common.isDiscordMainServer(server) is not True:
         return
 
     await discord.bot.send_message(discord.mod_channel(),"{0} **Unbanned User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`)".format(common.bernardUTCTimeNow(), user))
@@ -107,7 +107,7 @@ async def on_member_unban(server, user):
 @discord.bot.event
 async def on_member_update(before, after): 
     msgProcessStart = analytics.getEventTime()
-    if common.isDiscordMainServer(before.server.id) is not True:
+    if common.isDiscordMainServer(before.server) is not True:
         return
 
     #handle nickname changes

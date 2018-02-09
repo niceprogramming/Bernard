@@ -16,7 +16,7 @@ async def on_message(message):
 	msgProcessStart = analytics.getEventTime()
 	#only reply to the guild set in config file
 	try:
-		if common.isDiscordMainServer(message.server.id) is not True:
+		if common.isDiscordMainServer(message.server) is not True:
 			await discord.bot.process_commands(message)
 			return
 	except AttributeError: #process messages anyway

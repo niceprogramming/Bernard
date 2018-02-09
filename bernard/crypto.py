@@ -92,9 +92,15 @@ async def crypto(ctx, coin: str, currency="usd", exchange=None):
     #if the data we have is somehow useless
     if lookup[1] == None:
         await discord.bot.say("**500: internal shitcoin error.** Attempted price on None. VALUES: {0}".format(lookup))
+        return
 
     #get the price from the correct API
     price, exchange = await c.getprice(lookup)
+
+    #if an API is fucking up and returning None just leave
+    if price is None:
+        await discord.bot.say("**500: internal shitcoin error.** Library returned None.")
+        return
 
     if c.currency == "usd":
         await discord.bot.say("**{0}**: {1} ({2})".format(lookup[2].upper(),price,exchange.title()))
@@ -346,9 +352,12 @@ class TickerFetch(Coin):
     async def kraken(self):
         ret = await common.getJSON('https://api.kraken.com/0/public/Ticker?pair='+self.ticker.replace("btc","xbt")+self.currency.replace("btc","xbt"))
         if ret is not None:
-            for ticker, data in ret['result'].items():
-                self.valued = data['c'][0]
-                return self.format(data['c'][0])
+            try:
+                for ticker, data in ret['result'].items():
+                    self.valued = data['c'][0]
+                    return self.format(data['c'][0])
+            except KeyError:
+                return None
         else:
             return None
 
