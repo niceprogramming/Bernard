@@ -17,7 +17,8 @@
 		"messagecache":10000,
 		"debug":0,
 		"database":{
-			"sqlite":"bernard.db"
+			"sqlite":"bernard.db",
+			"timeout":1
 		}
 	},
 
