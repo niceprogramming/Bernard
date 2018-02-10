@@ -37,6 +37,10 @@ async def on_member_join(user):
     ##send the message to the admin defined channel
     await discord.bot.send_message(discord.mod_channel(),"{0} **New User:** {1.mention} (Name:`{1.name}#{1.discriminator}` ID:`{1.id}`) **Account Age:** {2} **From:** `{3}`".format(common.bernardUTCTimeNow(), user, common.bernardAccountAgeToFriendly(user), invite))
 
+    #do a subscriber check and assign any roles on joining
+    check_sub = subscriber.subscriber_update(user)
+    await check_sub.update_subscriber()
+
     #capture the event in the internal log
     journal.update_journal_event(module=__name__, event="ON_MEMBER_JOIN", userid=user.id, contents="{0.name}#{0.discriminator}".format(user))
 

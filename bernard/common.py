@@ -56,6 +56,32 @@ def bernardAccountAgeToFriendly(user):
 
     return "{:02d}:{:02d}:{:02d}:{:02d}:{:02d}:{:02d}".format(years, months, days, hours, mins, secs)
 
+#this should always return a discord.User
+def target_user(ctx, target=None):
+    #if we only got the context we only have the context
+    if target is None:
+        return ctx.message.author
+
+    #check if the user is allowed to modify the target
+    if isDiscordAdministrator(ctx.message.author) is not True:
+        return ctx.message.author
+
+    #if there is a mention use that for the user objext returned
+    if len(ctx.message.mentions) == 1:
+        return ctx.message.mentions[0]
+
+    #if we got this far we are working with a string of either an ID or a named member
+    named = ctx.message.server.get_member_named(target)
+    snowflake = ctx.message.server.get_member(target)
+
+    #one of these should be true, if neither are return None
+    if named:
+        return named
+    elif snowflake:
+        return snowflake
+    else:
+        return None
+
 async def getJSON(url, tmout=5, hdrs=None):
     logger.info("common.getJSON() attempting async URL {0} Timeout:{1}s".format(url, tmout))
     try:

@@ -12,52 +12,27 @@ import asyncio
 logger = logging.getLogger(__name__)
 logger.info("loading...")
 
-@discord.bot.command(pass_context=True)
-async def sync(ctx, check=None):
-    if check is None:
-        s = subscriber_update(ctx.message.author)
+
+@discord.bot.command(pass_context=True, aliases=['check', 'sub'])
+async def sync(ctx, target=None):
+    tgt = common.target_user(ctx, target)
+    if tgt is None:
+        await discord.bot.say("{0.message.author.mention} Not a valid user!".format(ctx))
+        return
     else:
-        if common.isDiscordAdministrator(ctx.message.author):
-            if len(ctx.message.mentions) == 0:
-                s = subscriber_update(ctx.message.server.get_member_named(check))
-            else:
-                s = subscriber_update(ctx.message.mentions[0])
-        else:
-            s = subscriber_update(ctx.message.author)
+        s = subscriber_update(tgt)
 
-    #ask for the data from the provider (destinygg)
-    await s.get_provider_data()
-    if s.provider_data == None:
-        await discord.bot.say("{0.message.author.mention} could not look you up with provider. Check your profile on destiny.gg".format(ctx))
-        return
-
-    #get the discord role
-    s.get_provider_to_discord_role()
-    if s.feature == "pleb":
-        await discord.bot.say("{0.message.author.mention} provider returned no active subscription.".format(ctx))
-        return
-
-    #if we make it this far get the sub data and lets do something with it
-    s.get_provider_subscription_end()
     await s.update_subscriber()
-
     await discord.bot.say(s.result)
 
 @discord.bot.command(pass_context=True)
-async def subaudit(ctx, check=None):
-    if common.isDiscordAdministrator(ctx.message.author) is not True:
+async def subaudit(ctx, target=None):
+    tgt = common.target_user(ctx, target)
+    if tgt is None:
+        await discord.bot.say("{0.message.author.mention} Not a valid user!".format(ctx))
         return
-
-    if check is None:
-        s = subscriber_update(ctx.message.author)
     else:
-        if common.isDiscordAdministrator(ctx.message.author):
-            if len(ctx.message.mentions) == 0:
-                s = subscriber_update(ctx.message.server.get_member_named(check))
-            else:
-                s = subscriber_update(ctx.message.mentions[0])
-        else:
-            s = subscriber_update(ctx.message.author)
+        s = subscriber_update(tgt)
 
     await s.audit_subscriber()
     await discord.bot.say(s.result)
@@ -66,9 +41,6 @@ class subscriber_update:
     def __init__(self, user):
         self.user = user
         self.today = int(time.strftime('%j', time.gmtime(time.time())))
-
-    async def get_provider_data(self):
-        self.provider_data = await common.getJSON(config.cfg['subscriber']['provider']['endpoint']+"/?privatekey="+config.cfg['subscriber']['provider']['privatekey']+"&discordid="+self.user.id)
 
     def get_provider_to_discord_role(self):
         if len(self.provider_data['features']) == 0:
@@ -98,11 +70,23 @@ class subscriber_update:
                 self.feature = "pleb"
                 self.roleid = None
 
-    def get_provider_subscription_end(self):
+    async def update_subscriber(self):
+        #ask for the data from the provider (destinygg)
+        self.provider_data = await common.getJSON(config.cfg['subscriber']['provider']['endpoint']+"/?privatekey="+config.cfg['subscriber']['provider']['privatekey']+"&discordid="+self.user.id)
+        if self.provider_data == None:
+            self.result = "{0.mention} could not look you up with provider. Check your profile on destiny.gg".format(self.user)
+            return
+
+        #get the discord role
+        self.get_provider_to_discord_role()
+        if self.feature == "pleb":
+            self.result = "{0.mention} provider returned no active subscription.".format(self.user)
+            return
+
+        #find when the subs expire, and pad it by the configured grace period
         self.expires = time.mktime(time.strptime(self.provider_data['subscription']['end'], config.cfg['subscriber']['provider']['timestamp']))
         self.expires_day = int(time.strftime('%j', time.gmtime(self.expires))) + config.cfg['subscriber']['settings']['grace_days']
 
-    async def update_subscriber(self):
         #check the db to see if this is an update or an insert
         database.dbCursor.execute('SELECT * FROM subscribers WHERE userid=?', (self.user.id,))
         existing = database.dbCursor.fetchone()
@@ -114,7 +98,7 @@ class subscriber_update:
 
             self.role = discord.discord.Role(id=self.roleid, server=config.cfg['discord']['server'])
             await discord.bot.add_roles(self.user, self.role)
-            self.result = "{0.mention} Subscrption added! {1} with {2} days until revocation.".format(self.user, self.feature, self.expires_day)
+            self.result = "{0.mention} Subscrption added! {1} with {2} days until revocation.".format(self.user, self.feature, self.expires_day - self.today)
 
             database.dbConn.commit()
             return
@@ -133,10 +117,10 @@ class subscriber_update:
                 #add the new role
                 self.newrole = discord.discord.Role(id=self.roleid, server=config.cfg['discord']['server'])
                 await discord.bot.add_roles(self.user, self.newrole)
-                self.result = "{0.mention} Subscrption updated! was {1}, is now {2} with {3} days until revocation.".format(self.user, existing[1], self.feature, self.expires_day)
+                self.result = "{0.mention} Subscrption updated! was {1}, is now {2} with {3} days until revocation.".format(self.user, existing[1], self.feature, self.expires_day - self.today)
 
             #update the db
-            self.result = "{0.mention} Nothing has changed. {1} with {2} days until revocation.".format(self.user, self.feature, self.expires_day)
+            self.result = "{0.mention} Nothing has changed. {1} with {2} days until revocation.".format(self.user, self.feature, self.expires_day - self.today)
             database.dbCursor.execute('UPDATE subscribers SET roleid=?, tier=?, last_updated=?, expires_epoch=?, expires_day=? WHERE userid=?', (self.roleid, self.feature, time.time(), self.expires, self.expires_day, self.user.id))
             database.dbConn.commit()
 
@@ -149,7 +133,7 @@ class subscriber_update:
         #self.user.roles = list of dicord.Roles
         #run through the roles assigned and build a list
         for role in self.user.roles:
-            logger.info("{0.name} has role {1.id} named {1}".format(self.user, role))
+            logger.debug("{0.name} has role {1.id} named {1}".format(self.user, role))
             self.audit_hasroles.append(role.id)
 
         #compare the list of available features with what was found. This prevents acting on Admin/VIP/e-girl roles
@@ -158,7 +142,7 @@ class subscriber_update:
 
         #does not have any roles we do not care about
         if len(self.audit_foundroles) == 0:
-            logger.info("{0.name} {0.id} has no roles to act on for features.".format(self.user))
+            logger.debug("{0.name} {0.id} has no roles to act on for features.".format(self.user))
             self.result = "{0.mention} had no assigned roles to act on.".format(self.user)
             return
 
@@ -246,16 +230,6 @@ async def updater_background():
 
         for member in list(server.members):
             update_user = subscriber_update(member)
-
-            await update_user.get_provider_data()
-            if update_user.provider_data == None:
-                continue
-
-            update_user.get_provider_to_discord_role()
-            if update_user.roleid == None:
-                continue
-
-            update_user.get_provider_subscription_end()
             await update_user.update_subscriber()
 
         journal.update_journal_job(module=__name__, job="updater_background", start=job_start, result=None)
