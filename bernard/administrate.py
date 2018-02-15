@@ -48,7 +48,7 @@ async def sql(ctx, *, sql: str):
             return
 
         dbres = database.dbCursor.fetchall()
-        if dbres is None:
+        if len(dbres) is None:
             await discord.bot.say("```DB returned None.```")
             return
 
@@ -108,15 +108,36 @@ async def reloadcfg(ctx):
 
 #get the data for time spent message.on_message()
 @admin.command(pass_context=True, hidden=True)
-async def stats(ctx):
-    if common.isDiscordAdministrator(ctx.message.author):
+async def stats(ctx, more=None):
+    if common.isDiscordAdministrator(ctx.message.author) is False:
+        return
+
+    if more == None:
         #get the avg without numpy because I dont want to import useless shit but will do it anyway in 3 months <-- haha I did exactly this check git
         emd = discord.embeds.Embed(color=0xE79015)
+        emd.set_thumbnail(url='https://cdn.discordapp.com/emojis/403034738979241984.png')        
         emd.add_field(name="Bot Uptime", value=analytics.getRuntime())
         emd.add_field(name="Messages Processed", value="{:,d}".format(analytics.messages_processed))
+        emd.add_field(name="Unique Users", value="{:,d}".format(len(analytics.messages_processed_users)))
+        emd.add_field(name="Unique Channels", value="{:,d}".format(len(analytics.messages_processed_perchannel)))
         emd.add_field(name="on_message() Statistics", value=analytics.get_onMessageProcessTime())
         emd.add_field(name="on_member() Statistics", value=analytics.get_onMemberProcessTime())
         await discord.bot.say(embed=emd)
+    elif more.startswith("c"):
+        sorted_channels = sorted(analytics.messages_processed_perchannel.items(), key=lambda x: x[1], reverse=True)
+        msg = ""
+        for channel in sorted_channels:
+            msg = msg + "#{0}: {1:,d}\n".format(discord.bot.get_channel(channel[0]), channel[1])
+        await discord.bot.say("Most active channels since boot:\n```{}```".format(msg))
+    elif more.startswith("u"):
+        sorted_users = sorted(analytics.messages_processed_users.items(), key=lambda x: x[1], reverse=True)
+        server = discord.bot.get_server(config.cfg['discord']['server'])
+        msg = ""
+        for user in sorted_users[:10]:
+            msg = msg + "{0}: {1:,d}\n".format(server.get_member(user[0]), user[1])
+        await discord.bot.say("Top 10 chatty users:\n```{}```".format(msg))
+    else:
+        await discord.bot.say("Unknown subcommand. Try `channel | user`")
 
 #handle auditing_blacklist_domains control
 @admin.command(pass_context=True, hidden=True)

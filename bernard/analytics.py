@@ -15,6 +15,7 @@ bernardLastMessageChannels = {}
 genesis = 0
 messages_processed = 0
 messages_processed_perchannel = {}
+messages_processed_users = {}
 
 def onMessageProcessTime(start, end):
 	global onMessageProcessTimes
@@ -61,14 +62,14 @@ def getRuntime():
         days, rem = divmod(runtime, 86400)
         hours, rem = divmod(rem, 3600)
         mins, secs = divmod(rem, 60)
-        return "Up {} days, {:2d}:{:2d}".format(int(days), int(hours), int(mins))
+        return "Up {} days, {:02d}:{:02d}".format(int(days), int(hours), int(mins))
     elif runtime > 3600:
         hours, rem = divmod(runtime, 3600)
         mins, secs = divmod(rem, 60)
-        return "Up {:2d}:{:2d}".format(int(hours), int(mins))
+        return "Up {:02d}:{:02d}".format(int(hours), int(mins))
     else:
         mins, secs = divmod(runtime, 60)
-        return "Up {:1d} Minutes {:2d} Seconds".format(int(mins), int(secs))
+        return "Up {:01d} Minutes {:02d} Seconds".format(int(mins), int(secs))
 
 #keep track of how messages processed since genesis
 def setMessageCounter(msg):
@@ -76,9 +77,14 @@ def setMessageCounter(msg):
     messages_processed = messages_processed+1
 
     try:
-        messages_processed_perchannel[msg.channel.id] = messages_processed_perchannel[msg.channel.id]+1
+        messages_processed_perchannel[msg.channel.id] += 1
     except KeyError:
         messages_processed_perchannel[msg.channel.id] = 1
+
+    try:
+        messages_processed_users[msg.author.id] += 1
+    except KeyError:
+        messages_processed_users[msg.author.id] = 1
 
 #create a dict of all channels and the last time the bot spoke in the channel
 def rateLimitNewMessage(channel, eventTime):
