@@ -30,4 +30,4 @@ async def isadmin(ctx):
 @discord.bot.command(pass_context=True, no_pm=True, hidden=True)
 async def isregulator(ctx):
     if common.isDiscordRegulator(ctx.message.author):
-        await discord.bot.say("{0.message.author.mention} is a regulator, and is ready to abuse all powers granted by the Admins.".format(ctx))
+        await discord.bot.say("{0.message.author.mention} is a regulator, and is ready to abuse all powers granted by the admins™.".format(ctx))
