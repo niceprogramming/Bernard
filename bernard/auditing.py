@@ -15,7 +15,7 @@ async def attachments(msg):
     if config.cfg['auditing']['attachments']['enable'] == 0:
         return
 
-    if common.isDiscordAdministrator(msg.author) is True:
+    if common.isDiscordAdministrator(msg.author):
         return
 
     if msg.attachments is False:
@@ -37,7 +37,7 @@ async def discord_invites(msg):
         return
 
     #ignore admins we dont even care what they do
-    if common.isDiscordAdministrator(msg.author) is True:
+    if common.isDiscordAdministrator(msg.author):
         return
 
     #use regex to find discord.gg links in all shapes and sizes, stop if we dont find any
@@ -65,7 +65,7 @@ async def blacklisted_domains(msg):
     if config.cfg['auditing']['blacklisted_domains']['enable'] == 0:
         return
 
-    if common.isDiscordAdministrator(msg.author) is True:
+    if common.isDiscordAdministrator(msg.author):
         return
 
     #matched regex into URLs list 

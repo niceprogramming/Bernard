@@ -25,3 +25,9 @@ async def isowner(ctx):
 async def isadmin(ctx):
     if common.isDiscordAdministrator(ctx.message.author):
         await discord.bot.say("Somehow Destiny let you have administrator in here... {0.message.author.mention}".format(ctx)) 
+
+#!isregulator = sanity check for regulators to confirm their power level
+@discord.bot.command(pass_context=True, no_pm=True, hidden=True)
+async def isregulator(ctx):
+    if common.isDiscordRegulator(ctx.message.author):
+        await discord.bot.say("{0.message.author.mention} is a regulator, and is ready to abuse all powers granted by the Admins.".format(ctx))

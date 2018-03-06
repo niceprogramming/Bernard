@@ -15,7 +15,7 @@ logger.info("loading...")
 #handle auditing_blacklist_domains control
 @discord.bot.command(pass_context=True, hidden=True)
 async def journal(ctx, user: str):
-    if common.isDiscordAdministrator(ctx.message.author) is False:
+    if common.isDiscordRegulator(ctx.message.author) is False:
         return
 
     try:
@@ -66,4 +66,18 @@ def update_journal_event(**kwargs):
     contents = kwargs['contents']
 
     database.dbCursor.execute('''INSERT OR IGNORE INTO journal_events(module, event, time, userid, eventid, contents) VALUES(?,?,?,?,?,?)''', (module, event, time.time(), userid, eventid, contents))
+    database.dbConn.commit()
+
+#CREATE TABLE "journal_regulators" ( `id_invoker` TEXT, `id_targeted` TEXT, `id_message` TEXT, `action` TEXT, `time` INTEGER, `event` INTEGER )
+def update_journal_regulator(**kwargs):
+    invoker = kwargs['invoker']
+    target = kwargs['target']
+    eventdata = kwargs['eventdata']
+    action = kwargs['action']
+    try:
+        message = kwargs['messageid']
+    except KeyError:
+        message = None
+
+    database.dbCursor.execute('''INSERT OR IGNORE INTO journal_regulators(id_invoker, id_targeted, id_message, action, time, event) VALUES(?,?,?,?,?,?)''', (invoker, target, eventdata, action, time.time(), message))
     database.dbConn.commit()

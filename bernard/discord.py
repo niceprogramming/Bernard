@@ -1,4 +1,3 @@
-from . import eventloop
 from . import config
 
 import asyncio
@@ -13,12 +12,19 @@ logger.info("loading...")
 
 bot_jobs_ready = False
 
-bot = commands.Bot(command_prefix='!', max_messages=config.cfg['bernard']['messagecache'], description='Bernard, for Discord. Made with love by ILiedAboutCake', loop=eventloop.evtloop)
+evtloop = asyncio.get_event_loop()
+
+bot = commands.Bot(command_prefix='!', max_messages=config.cfg['bernard']['messagecache'], description='Bernard, for Discord. Made with love by ILiedAboutCake', loop=evtloop)
 
 @bot.event
 async def on_ready():
     global bot_jobs_ready
-    logger.info('Logged in as "{0.user.name} ID:{0.user.id}"'.format(bot))
+    global default_server
+    logger.info('Logged in as {0.user.name} ID:{0.user.id}'.format(bot))
+
+    #make an object available of this Server
+    default_server = bot.get_server(config.cfg['discord']['server'])
+
     await asyncio.sleep(5)
 
     logger.info('Setting game status as in as "{0}"'.format(config.cfg['bernard']['gamestatus']))

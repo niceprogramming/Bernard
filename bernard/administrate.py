@@ -109,7 +109,7 @@ async def reloadcfg(ctx):
 #get the data for time spent message.on_message()
 @admin.command(pass_context=True, hidden=True)
 async def stats(ctx, more=None):
-    if common.isDiscordAdministrator(ctx.message.author) is False:
+    if common.isDiscordRegulator(ctx.message.author) is False:
         return
 
     if more == None:

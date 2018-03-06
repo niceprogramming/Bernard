@@ -9,11 +9,11 @@ import logging
 logger = logging.getLogger(__name__)
 logger.info("loading...")
 
-bernardStartTimeSets = 0
-
+#really dangerous commands, evals and raw bot exec etc
 def isDiscordBotOwner(id):
     return id == config.cfg['bernard']['owner']
 
+#commands that can lead to damage, but not the bot
 def isDiscordAdministrator(member):
     if isDiscordBotOwner(member.id): return True
 
@@ -25,12 +25,21 @@ def isDiscordAdministrator(member):
 
     return False
 
+#regulators that can control some basic mod tasks
+def isDiscordRegulator(member):
+    if isDiscordBotOwner(member.id): return True
+
+    try:
+        for role in member.roles:
+            if role.id == config.cfg['bernard']['administrators']: return True
+            if role.id == config.cfg['bernard']['regulators']: return True
+    except AttributeError:
+        return False
+
+    return False
+
 def datetimeObjectToString(timestamp):
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
-
-def bernardStartTimeSet():
-    global bernardStartTimeSets
-    bernardStartTimeSets = time.time()
 
 def isDiscordMainServer(server):
     if server is None:
@@ -101,3 +110,20 @@ async def getJSON(url, tmout=5, hdrs=None):
     except Exception as e:
         logger.error("common.getJSON() threw an exception: {0}".format(e))
         return None
+
+#this is easier than porting to rewrite
+async def ban_verbose(user, reason):
+    try:
+        url = config.cfg['discord']['endpoint'] + "/guilds/" + config.cfg['discord']['server'] + "/bans/" + user.id
+        params = [('reason', reason), ('delete-message-days', 0)]
+        async with aiohttp.put(url, params=params, headers={'Authorization':'Bot '+ config.cfg['discord']['token']}) as r:
+            logger.info("common.ban_verbose() attempting async URL {0} params".format(url, params))
+            if r.status == 204:
+                return True
+            else:
+                logger.warn("common.ban_verbose() unable to PUT to endpoint. HTTP code not valid HTTP/{}".format(r.status))
+                return False
+
+    except Exception as e:
+        logger.error("common.ban_verbose() threw an exception: {0}".format(e))
+        return False
