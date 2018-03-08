@@ -128,14 +128,14 @@ async def stats(ctx, more=None):
         msg = ""
         for channel in sorted_channels:
             msg = msg + "#{0}: {1:,d}\n".format(discord.bot.get_channel(channel[0]), channel[1])
-        await discord.bot.say("Most active channels since boot:\n```{}```".format(msg))
+        await discord.bot.say("Most active channels since bot reboot, {}:\n```{}```".format(analytics.getRuntime(), msg))
     elif more.startswith("u"):
         sorted_users = sorted(analytics.messages_processed_users.items(), key=lambda x: x[1], reverse=True)
         server = discord.bot.get_server(config.cfg['discord']['server'])
         msg = ""
         for user in sorted_users[:10]:
             msg = msg + "{0}: {1:,d}\n".format(server.get_member(user[0]), user[1])
-        await discord.bot.say("Top 10 chatty users:\n```{}```".format(msg))
+        await discord.bot.say("Top 10 talkative users since bot reboot, {}:\n```{}```".format(analytics.getRuntime(), msg))
     else:
         await discord.bot.say("Unknown subcommand. Try `channel | user`")
 
