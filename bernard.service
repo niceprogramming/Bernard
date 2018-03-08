@@ -1,0 +1,13 @@
+[Unit]
+Description=Bernard3 - Destiny.GG Discord Bot
+After=network.target
+
+[Service]
+Type=simple
+User=discorduser
+WorkingDirectory=/home/discorduser/Bernard
+ExecStart=/home/discorduser/.pyenv/shims/python /home/discorduser/Bernard/__init__.py
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

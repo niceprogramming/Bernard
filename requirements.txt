@@ -2,3 +2,5 @@ tldextract
 tabulate
 numpy
 antispam
+aiohttp
+discord.py
