@@ -33,7 +33,10 @@ async def get_allowed_groups():
     #remove default role
     untouchable_roles.remove(discord.default_server.default_role.id)
 
-    #remove subscriber roles
+    #remove twitch role
+    untouchable_roles.remove(config.cfg['discord']['twitch_managed_role'])
+
+    #remove destinygg subscriber roles
     for feature in config.cfg['subscriber']['features']:
         untouchable_roles.remove(config.cfg['subscriber']['features'][feature]['roleid'])
 
