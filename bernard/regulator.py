@@ -154,12 +154,12 @@ async def silence(ctx, target, *, reason):
 
 #return member rights to talk in voice rooms
 @discord.bot.command(pass_context=True, no_pm=True, hidden=True)
-async def unsilence(ctx, target, *, reason):
+async def unsilence(ctx, target):
     if common.isDiscordRegulator(ctx.message.author) != True:
         return
 
     if allow_regulation(ctx):
         await discord.bot.server_voice_state(ctx.message.mentions[0], mute=0)
-        journal.update_journal_regulator(invoker=ctx.message.author.id, target=ctx.message.mentions[0].id, eventdata=reason, action="VOICE_UNSILENCE", messageid=ctx.message.id)
+        journal.update_journal_regulator(invoker=ctx.message.author.id, target=ctx.message.mentions[0].id, eventdata="None", action="VOICE_UNSILENCE", messageid=ctx.message.id)
     else:
         await discord.bot.say("🛑 {} unable to moderate user. Either you failed to tag the user properly or the member is protected from regulators.".format(ctx.message.author.mention))        
