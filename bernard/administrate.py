@@ -63,7 +63,7 @@ async def sql(ctx, *, sql: str):
 
         #check the length
         if len(postdb) >= 1990:
-            await discord.bot.say("```DB returned a result that is {} characters over the Discord limit".format(len(dbres) - 1990))
+            await discord.bot.say("```DB returned a result that is {} characters over the Discord limit```".format(1990 - len(dbres)))
             return
 
         await discord.bot.say("```{0}```".format(postdb))
