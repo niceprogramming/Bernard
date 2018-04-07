@@ -48,8 +48,8 @@ async def sql(ctx, *, sql: str):
             return
 
         dbres = database.dbCursor.fetchall()
-        if len(dbres) is None:
-            await discord.bot.say("```DB returned None.```")
+        if len(dbres) is 0:
+            await discord.bot.say("```DB returned zero results.```")
             return
 
         #we have to get the column names then make a list of them. Then convert the list to a tuple and add it to the front of the db list. Wow.
@@ -57,6 +57,10 @@ async def sql(ctx, *, sql: str):
         for tb in database.dbCursor.description:
             column_names.append(tb[0])
         dbres.insert(0,tuple(column_names))
+
+        if len(dbres) >= 1994:
+            await discord.bot.say("```DB returned a result that is {} characters over the Discord limit".format(len(dbres) - 2000))
+            return
 
         #https://pypi.python.org/pypi/tabulate
         await discord.bot.say("```{0}```".format(tabulate(dbres, headers="firstrow")))
@@ -152,7 +156,7 @@ async def blacklist(ctx, command: str, domain: str, policy="delete"):
     if command == "add":
         #add a new domain to the DB
         database.dbCursor.execute('''SELECT * FROM auditing_blacklisted_domains WHERE domain=?''', (domain,))
-        dbres = database.dbCursor.fetchone()
+        dbres = database.dbCursor.fetchone() 
         if dbres == None:
             database.dbCursor.execute('''INSERT OR IGNORE INTO auditing_blacklisted_domains(domain, action, added_by, added_when) VALUES(?,?,?,?)''', (domain.lower(), policy.lower(), ctx.message.author.name, int(datetime.datetime.utcnow().timestamp())))
             database.dbConn.commit()
