@@ -58,12 +58,15 @@ async def sql(ctx, *, sql: str):
             column_names.append(tb[0])
         dbres.insert(0,tuple(column_names))
 
-        if len(dbres) >= 1994:
-            await discord.bot.say("```DB returned a result that is {} characters over the Discord limit".format(len(dbres) - 2000))
+        #tabulate this into a string https://pypi.python.org/pypi/tabulate
+        postdb = tabulate(dbres, headers="firstrow")
+
+        #check the length
+        if len(postdb) >= 1990:
+            await discord.bot.say("```DB returned a result that is {} characters over the Discord limit".format(len(dbres) - 1990))
             return
 
-        #https://pypi.python.org/pypi/tabulate
-        await discord.bot.say("```{0}```".format(tabulate(dbres, headers="firstrow")))
+        await discord.bot.say("```{0}```".format(postdb))
 
 
 #get python version and discordpy version
