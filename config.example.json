@@ -20,7 +20,8 @@
 		"database":{
 			"sqlite":"bernard.db",
 			"timeout":1
-		}
+		},
+		"muted_role":"XXXXXXXXXX"
 	},
 
 	"purge_inactive_users":{
