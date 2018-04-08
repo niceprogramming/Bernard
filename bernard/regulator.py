@@ -178,6 +178,7 @@ async def mute(ctx, target, *, reason):
         role = utils.get(ctx.message.server.roles, id=config.cfg['bernard']['muted_role'])
         if role is None:
             await discord.bot.say("Unable to mute user because the role does not exist")
+            return
         await discord.bot.add_roles(ctx.message.mentions[0], role)
         journal.update_journal_regulator(invoker=ctx.message.author.id, target=ctx.message.mentions[0].id, eventdata=reason, action="MUTE_MEMBER", messageid=ctx.message.id)
     else:
