@@ -2,7 +2,7 @@ from . import config
 from . import common
 from . import discord
 from . import journal
-
+from discord import utils
 import asyncio
 import aiohttp
 import logging
@@ -162,4 +162,37 @@ async def unsilence(ctx, target):
         await discord.bot.server_voice_state(ctx.message.mentions[0], mute=0)
         journal.update_journal_regulator(invoker=ctx.message.author.id, target=ctx.message.mentions[0].id, eventdata="None", action="VOICE_UNSILENCE", messageid=ctx.message.id)
     else:
-        await discord.bot.say("🛑 {} unable to moderate user. Either you failed to tag the user properly or the member is protected from regulators.".format(ctx.message.author.mention))        
+        await discord.bot.say("🛑 {} unable to moderate user. Either you failed to tag the user properly or the member is protected from regulators.".format(ctx.message.author.mention))
+
+
+#give member a role to remove text channel privileges
+@discord.bot.command(pass_context=True, no_pm=True, hidden=True)
+async def mute(ctx, target, *, reason):
+    if common.isDiscordRegulator(ctx.message.author) != True:
+        return
+
+    if len(reason) < 4:
+        await discord.bot.say("⚠️ Mute reason must be longer than 4 characters. `!mute @username reason goes here`")
+        return
+    if allow_regulation(ctx):
+        role = utils.get(ctx.message.server.roles, id=config.cfg['bernard']['muted_role'])
+        if role is None:
+            await discord.bot.say("Unable to mute user because the role does not exist")
+        await discord.bot.add_roles(ctx.message.mentions[0], role)
+        journal.update_journal_regulator(invoker=ctx.message.author.id, target=ctx.message.mentions[0].id, eventdata=reason, action="MUTE_MEMBER", messageid=ctx.message.id)
+    else:
+        await discord.bot.say("🛑 {} unable to moderate user. Either you failed to tag the user properly or the member is protected from regulators.".format(ctx.message.author.mention))
+
+#frees member from regulator oppression.
+@discord.bot.command(pass_context=True, no_pm=True, hidden=True)
+async def unmute(ctx, target):
+    if common.isDiscordRegulator(ctx.message.author) != True:
+        await discord.bot.say("nice try")
+        return
+
+    if allow_regulation(ctx):
+        role = utils.get(ctx.message.server.roles, id=config.cfg['bernard']['muted_role'])
+        await discord.bot.remove_roles(ctx.message.mentions[0], role)
+        journal.update_journal_regulator(invoker=ctx.message.author.id, target=ctx.message.mentions[0].id, eventdata="None", action="UNMUTE_MEMBER", messageid=ctx.message.id)
+    else:
+        await discord.bot.say("🛑 {} unable to moderate user. Either you failed to tag the user properly or the member is protected from regulators.".format(ctx.message.author.mention))
